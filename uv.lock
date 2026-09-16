@@ -208,7 +208,7 @@ wheels = [
 [[package]]
 name = "atria-core"
 version = "0.1.8"
-source = { editable = "../atria_core" }
+source = { git = "https://github.com/atriaml/atria_core.git#94e778d833b9f56890bb4fa14b356f59ecaf0bf5" }
 dependencies = [
     { name = "aiohttp" },
     { name = "beautifulsoup4" },
@@ -244,56 +244,6 @@ dependencies = [
     { name = "rich" },
     { name = "tqdm" },
     { name = "webdataset" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "aiohttp", specifier = ">=3.9.0" },
-    { name = "beautifulsoup4", specifier = ">=4.12.2" },
-    { name = "codename", specifier = ">=1.1" },
-    { name = "coloredlogs", specifier = ">=15.0.1" },
-    { name = "coverage", marker = "extra == 'test'" },
-    { name = "datadings" },
-    { name = "datasets", specifier = "==5.0.1" },
-    { name = "deltalake", specifier = ">=1.0.2" },
-    { name = "factory-boy", specifier = ">=3.3.3" },
-    { name = "filelock", specifier = ">=3.18.0" },
-    { name = "gdown", specifier = ">=5.2.0" },
-    { name = "imagesize", specifier = ">=1.4.1" },
-    { name = "lazy-loader", specifier = ">=0.4" },
-    { name = "lxml", specifier = ">=6.0.0" },
-    { name = "more-itertools", specifier = ">=11.1.0" },
-    { name = "msgpack", specifier = ">=1.1.1" },
-    { name = "numpy", specifier = ">=1.26.4" },
-    { name = "omegaconf", specifier = ">=2.3.0" },
-    { name = "pandas", specifier = ">2" },
-    { name = "pdf2image", specifier = ">=1.17.0" },
-    { name = "pdfplumber", specifier = ">=0.11.8" },
-    { name = "pillow", specifier = ">=11.0.0" },
-    { name = "pyarrow", specifier = ">14" },
-    { name = "pyarrow-hotfix", specifier = ">=0.7" },
-    { name = "pydantic", specifier = ">=2.0" },
-    { name = "pyfiglet", specifier = ">=1.0.4" },
-    { name = "pymupdf", specifier = ">=1.26.3" },
-    { name = "pypdf2", specifier = ">=3.0.1" },
-    { name = "pypdfium2", specifier = ">=4.30.0" },
-    { name = "pytesseract", specifier = ">=0.3.13" },
-    { name = "pytest", marker = "extra == 'test'" },
-    { name = "ray", specifier = ">=2.47.1" },
-    { name = "requests", specifier = ">=2.32.5" },
-    { name = "rich", specifier = ">=14.0.0" },
-    { name = "tqdm", specifier = ">=4.67.1" },
-    { name = "webdataset", specifier = ">=1.0.2" },
-]
-provides-extras = ["test"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "coverage", specifier = ">=7.12.0" },
-    { name = "mypy", specifier = ">=1.18.2" },
-    { name = "pytest", specifier = ">=9.0.1" },
-    { name = "ruff", specifier = ">=0.14.6" },
-    { name = "types-pyyaml", specifier = ">=6.0.0" },
 ]
 
 [[package]]
@@ -1482,7 +1432,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "atria-core", editable = "../atria_core" },
+    { name = "atria-core", git = "https://github.com/atriaml/atria_core.git" },
     { name = "docling", specifier = ">=2.127.0" },
 ]
 

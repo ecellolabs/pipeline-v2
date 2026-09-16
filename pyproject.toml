@@ -7,9 +7,7 @@ requires-python = ">=3.13"
 dependencies = ["atria-core", "docling>=2.127.0"]
 
 [tool.uv.sources]
-# Temporarily pointed at the local checkout to test a fix to
-# _StoreImagesToFiles (MultiPageDocumentInstance support) before upstreaming.
-atria-core = { path = "../atria_core", editable = true }
+atria-core = { git = "https://github.com/atriaml/atria_core.git" }
 
 [build-system]
 requires = ["hatchling"]
