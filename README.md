@@ -2,7 +2,7 @@
 
 ## Usage scripts
 
-`agentic.datasets` registers three custom datasets: `mmlongbench_doc`, `mp_docvqa`, and `slidevqa`. Both usage scripts work with any of the three — just swap the dataset name.
+`agentic.datasets` registers three custom datasets: `mmlongbench_doc`, `mpdocvqa`, and `slidevqa`. Both usage scripts work with any of the three — just swap the dataset name.
 
 Activate the environment first, then run scripts as plain Python from the repo root:
 
@@ -16,7 +16,7 @@ Loads a registered dataset, optionally caches it, and visualizes the first sampl
 
 ```bash
 python usage/00_prepare_dataset.py mmlongbench_doc
-python usage/00_prepare_dataset.py mp_docvqa
+python usage/00_prepare_dataset.py mpdocvqa
 python usage/00_prepare_dataset.py slidevqa
 ```
 
@@ -28,11 +28,11 @@ Runs `DoclingTransform` (layout analysis + OCR via docling) over every page of e
 
 ```bash
 python usage/01_preprocess.py mmlongbench_doc --num-workers 4
-python usage/01_preprocess.py mp_docvqa --num-workers 4
+python usage/01_preprocess.py mpdocvqa --num-workers 4
 python usage/01_preprocess.py slidevqa --num-workers 4
 ```
 
-- First argument — the registered dataset name (`mmlongbench_doc`, `mp_docvqa`, or `slidevqa`).
+- First argument — the registered dataset name (`mmlongbench_doc`, `mpdocvqa`, or `slidevqa`).
 - Outputs are written inside the dataset's own `data_dir` (wherever that dataset was downloaded/cached to) at `<data_dir>/docling/<split>/<sample.key>/<page.key>.json` — no separate output path needed.
 - `--num-workers` — number of worker processes; each builds its own `DoclingTransform` (docling's converter isn't cheaply shareable across processes). Defaults to `1` (no multiprocessing).
 

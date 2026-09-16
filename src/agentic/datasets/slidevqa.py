@@ -88,7 +88,7 @@ class _HFRowMeta:
 @dataclass
 class _Sample:
     deck_name: str
-    page_image_paths: list[Path]
+    page_images: list[PILImage]
     page_bboxes: dict[int, list[_BBox]]
     qa_metas: list[_HFRowMeta]
 
@@ -134,7 +134,9 @@ class SplitIterator(Sequence[_Sample]):
         logger.info(
             f"Saving SlideVQA {split.value} split page images to {self._images_dir}"
         )
-        self._save_page_images()
+        # Disabled for a quick perf check: load page images directly from the
+        # in-memory HF row instead of round-tripping through saved PNGs.
+        # self._save_page_images()
 
     def _deck_image_dir(self, deck_name: str) -> Path:
         return self._images_dir / deck_name
@@ -247,11 +249,10 @@ class SplitIterator(Sequence[_Sample]):
         qa_metas = [
             _HFRowMeta.from_hf_row(self._rows[row_index]) for row_index in row_indices
         ]
-        deck_dir = self._deck_image_dir(deck_name)
-        page_image_paths = sorted(deck_dir.glob("*.png"), key=lambda p: int(p.stem))
+        page_images = self._deck_page_images(self._rows[row_indices[0]])
         return _Sample(
             deck_name=deck_name,
-            page_image_paths=page_image_paths,
+            page_images=page_images,
             page_bboxes=self._load_deck_bboxes(deck_name),
             qa_metas=qa_metas,
         )
@@ -280,9 +281,9 @@ class InputTransform:
 
     def __call__(self, sample: _Sample) -> MultiPageDocumentInstance:
         pages: list[SinglePageDocumentInstance] = []
-        for page_number, image_path in enumerate(sample.page_image_paths):
+        for page_number, image in enumerate(sample.page_images):
             page = SinglePageDocumentInstance.from_image(
-                image_path, sample_id=f"{sample.deck_name}#{page_number}"
+                image, sample_id=f"{sample.deck_name}#{page_number}"
             )
             bboxes = sample.page_bboxes.get(page_number, [])
             pages.append(

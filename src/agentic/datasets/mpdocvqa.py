@@ -167,14 +167,14 @@ class MPDocVQA(Dataset[MultiPageDocumentInstance]):
     """MP-DocVQA: question answering over multi-page scanned documents,
     reusing SP-DocVQA's questions and answers with added document context."""
 
-    __module_name__ = "mp_docvqa"
+    __module_name__ = "mpdocvqa"
 
     def _download(
         self, data_dir: str, access_token: str | None = None
     ) -> dict[str, Path]:
         imdb_dir = require_manual_path(
             data_dir=data_dir,
-            expected_path="mp_docvqa/imdb",
+            expected_path="mpdocvqa/imdb",
             homepage=_HOMEPAGE,
             instructions=(
                 f"Register at {_RRC_PORTAL} (Task 4: MP-DocVQA), download the "
@@ -184,7 +184,7 @@ class MPDocVQA(Dataset[MultiPageDocumentInstance]):
         )
         images_dir = require_manual_path(
             data_dir=data_dir,
-            expected_path="mp_docvqa/images",
+            expected_path="mpdocvqa/images",
             homepage=_HOMEPAGE,
             instructions=(
                 f"Register at {_RRC_PORTAL} (Task 4: MP-DocVQA), download the "
@@ -214,11 +214,9 @@ class MPDocVQA(Dataset[MultiPageDocumentInstance]):
     def _build_split_iterator(
         self, split: DatasetSplitType, data_dir: str
     ) -> SplitIterator:
-        return SplitIterator(
-            imdb_dir=Path(data_dir) / "mp_docvqa" / "imdb", split=split
-        )
+        return SplitIterator(imdb_dir=Path(data_dir) / "mpdocvqa" / "imdb", split=split)
 
     def _build_input_transform(
         self,
     ) -> Callable[[_IMDBRecord], MultiPageDocumentInstance]:
-        return InputTransform(images_dir=Path(self.data_dir) / "mp_docvqa" / "images")
+        return InputTransform(images_dir=Path(self.data_dir) / "mpdocvqa" / "images")
