@@ -52,7 +52,6 @@ def prepare_dataset(
     """Load and cache a dataset, then inspect the first sample of each split."""
     dataset = DatasetBuilder().load(name, data_dir=data_dir, **dataset_kwargs)
     if enable_caching:
-        print("Caching")
         dataset = dataset.cache(storage_type)
     dataset = dataset.build()
 

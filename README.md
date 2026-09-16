@@ -24,7 +24,7 @@ Output: per-split sample visualizations under `./test/<name>/<split>/`.
 
 Pass `--split {train,validation,test}` to build and load only that split's files, instead of all splits.
 
-Pass `--enable-caching` to write a fast-reload cache of the dataset via `atria_core`'s `Cacher` (`--storage-type {msgpack,deltalake}`, default `deltalake`). Images are always kept as on-disk files referenced by path rather than embedded in the cache, so reload stays cheap regardless of storage type.
+Pass `--enable-caching` (on by default; use `--no-enable-caching` to disable) to write a fast-reload cache of the dataset via `atria_core`'s `Cacher` (`--storage-type msgpack`, the default). Images are always kept as on-disk files referenced by path rather than embedded in the cache, so reload stays cheap.
 
 ### Step 2 — `usage/01_preprocess.py`
 
