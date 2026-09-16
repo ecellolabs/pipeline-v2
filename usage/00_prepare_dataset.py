@@ -9,15 +9,16 @@ from typing import Any
 
 from atria_core.datasets import DatasetBuilder, FileStorageType, datasets
 from atria_core.logger import get_logger
+from atria_core.types import DatasetSplitType
 from atria_core.visualizers import visualize
 from tqdm import tqdm
 
-from agentic.datasets import *
+from mmagentic.datasets import *
 
 logger = get_logger(__name__)
 
 
-def benchmark_dataset(dataset: Any, n: int = 1000) -> None:
+def benchmark_dataset(dataset: Any, n: int = 10) -> None:
     """Iterate over all splits, time each sample load, and log min/max/avg."""
     for split, split_iterator in dataset.split_iterators.items():
         samples: Any = split_iterator
@@ -42,14 +43,16 @@ def prepare_dataset(
     name: str,
     output_dir: str = "./test",
     enable_caching: bool = False,
+    storage_type: FileStorageType = FileStorageType.DELTALAKE,
     visualize_samples: bool = True,
-    benchmark: bool = True,
+    benchmark: bool = False,
     **dataset_kwargs: Any,
 ) -> None:
     """Load and cache a dataset, then inspect the first sample of each split."""
     dataset = DatasetBuilder().load(name, **dataset_kwargs)
     if enable_caching:
-        dataset = dataset.cache(FileStorageType.DELTALAKE, store_images_to_files=True)
+        print("Caching")
+        dataset = dataset.cache(storage_type)
     dataset = dataset.build()
 
     logger.info("Cached dataset:\n%s", dataset)
@@ -78,8 +81,23 @@ def main() -> None:
 
     parser = argparse.ArgumentParser()
     parser.add_argument("name", choices=sorted(datasets.list()))
+    parser.add_argument(
+        "--split", choices=[s.value for s in DatasetSplitType], default=None
+    )
+    parser.add_argument("--enable-caching", action="store_true", default=True)
+    parser.add_argument(
+        "--storage-type",
+        choices=[t.value for t in FileStorageType],
+        default=FileStorageType.MSGPACK.value,
+    )
     args = parser.parse_args()
-    prepare_dataset(args.name)
+    split = DatasetSplitType(args.split) if args.split is not None else None
+    prepare_dataset(
+        args.name,
+        split=split,
+        enable_caching=args.enable_caching,
+        storage_type=FileStorageType(args.storage_type),
+    )
 
 
 if __name__ == "__main__":

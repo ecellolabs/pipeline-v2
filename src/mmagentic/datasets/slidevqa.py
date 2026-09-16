@@ -88,7 +88,7 @@ class _HFRowMeta:
 @dataclass
 class _Sample:
     deck_name: str
-    page_images: list[PILImage]
+    page_image_paths: list[Path]
     page_bboxes: dict[int, list[_BBox]]
     qa_metas: list[_HFRowMeta]
 
@@ -134,9 +134,7 @@ class SplitIterator(Sequence[_Sample]):
         logger.info(
             f"Saving SlideVQA {split.value} split page images to {self._images_dir}"
         )
-        # Disabled for a quick perf check: load page images directly from the
-        # in-memory HF row instead of round-tripping through saved PNGs.
-        # self._save_page_images()
+        self._save_page_images()
 
     def _deck_image_dir(self, deck_name: str) -> Path:
         return self._images_dir / deck_name
@@ -145,10 +143,21 @@ class SplitIterator(Sequence[_Sample]):
         deck_dir = self._deck_image_dir(deck_name)
         if deck_dir.exists():
             return
-        deck_dir.mkdir(parents=True, exist_ok=True)
+        # Write into a sibling temp dir and rename into place only once every
+        # page has been written -- if this process is killed mid-write, the
+        # partial temp dir is left behind under its own name (never at
+        # `deck_dir`), so a re-run's `deck_dir.exists()` check above can't be
+        # fooled by a half-written deck into skipping it forever.
+        tmp_dir = deck_dir.with_name(f".{deck_dir.name}.tmp")
+        if tmp_dir.exists():
+            import shutil
+
+            shutil.rmtree(tmp_dir)
+        tmp_dir.mkdir(parents=True)
         page_images = self._deck_page_images(self._rows[row_indices[0]])
         for page_number, image in enumerate(page_images):
-            image.save(deck_dir / f"{page_number}.png", format="PNG")
+            image.save(tmp_dir / f"{page_number}.png", format="PNG")
+        tmp_dir.rename(deck_dir)
 
     def _save_page_images(self) -> None:
         import concurrent.futures
@@ -249,10 +258,11 @@ class SplitIterator(Sequence[_Sample]):
         qa_metas = [
             _HFRowMeta.from_hf_row(self._rows[row_index]) for row_index in row_indices
         ]
-        page_images = self._deck_page_images(self._rows[row_indices[0]])
+        deck_dir = self._deck_image_dir(deck_name)
+        page_image_paths = sorted(deck_dir.glob("*.png"), key=lambda p: int(p.stem))
         return _Sample(
             deck_name=deck_name,
-            page_images=page_images,
+            page_image_paths=page_image_paths,
             page_bboxes=self._load_deck_bboxes(deck_name),
             qa_metas=qa_metas,
         )
@@ -281,9 +291,9 @@ class InputTransform:
 
     def __call__(self, sample: _Sample) -> MultiPageDocumentInstance:
         pages: list[SinglePageDocumentInstance] = []
-        for page_number, image in enumerate(sample.page_images):
+        for page_number, image_path in enumerate(sample.page_image_paths):
             page = SinglePageDocumentInstance.from_image(
-                image, sample_id=f"{sample.deck_name}#{page_number}"
+                image_path, sample_id=f"{sample.deck_name}#{page_number}"
             )
             bboxes = sample.page_bboxes.get(page_number, [])
             pages.append(

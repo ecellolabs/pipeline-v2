@@ -19,7 +19,7 @@ from atria_core.types import (
     SinglePageDocumentInstance,
 )
 
-from agentic.datasets.utils import require_manual_path
+from mmagentic.datasets.utils import require_manual_path
 
 _HOMEPAGE = "https://github.com/rubenpt91/MP-DocVQA-Framework"
 _RRC_PORTAL = "https://rrc.cvc.uab.es/?ch=17&com=downloads"
@@ -38,7 +38,7 @@ class _IMDBRecord:
     question: str
     image_id: str
     image_name: list[str]
-    answer_page_idx: int
+    answer_page_idx: int | None
     answers: list[str]
     ocr_tokens: list[list[str]]
     ocr_normalized_boxes: list[list[tuple[float, float, float, float]]]
@@ -48,11 +48,18 @@ class _IMDBRecord:
         image_name = record["image_name"]
         assert isinstance(image_name, list)
 
-        raw_answers = record["answers"]
-        assert isinstance(raw_answers, list)
-        deduplicated_answers = list(
-            dict.fromkeys(str(answer) for answer in raw_answers)
+        # Test-split records have no ground truth (has_answer=False in the
+        # .npy header): "answers"/"answer_page_idx" are simply absent.
+        raw_answers = record.get("answers")
+        assert raw_answers is None or isinstance(raw_answers, list)
+        deduplicated_answers = (
+            list(dict.fromkeys(str(answer) for answer in raw_answers))
+            if raw_answers is not None
+            else []
         )
+
+        answer_page_idx = record.get("answer_page_idx")
+        assert answer_page_idx is None or isinstance(answer_page_idx, int)
 
         ocr_tokens = record["ocr_tokens"]
         assert isinstance(ocr_tokens, list)
@@ -62,9 +69,6 @@ class _IMDBRecord:
 
         question_id = record["question_id"]
         assert isinstance(question_id, int)
-
-        answer_page_idx = record["answer_page_idx"]
-        assert isinstance(answer_page_idx, int)
 
         return cls(
             question_id=question_id,
@@ -148,11 +152,15 @@ class InputTransform:
             for page_number, image_name in enumerate(record.image_name)
         ]
 
+        # Test-split records carry no ground truth: leave answer fields empty
+        # rather than indexing into an empty `answers` list.
         qa_pair = MultiPageQAPair(
             id=record.question_id,
             question_text=record.question,
-            answer_text=record.answers[0],
-            evidence_pages=[record.answer_page_idx],
+            answer_text=record.answers[0] if record.answers else "",
+            evidence_pages=(
+                [record.answer_page_idx] if record.answer_page_idx is not None else []
+            ),
             alternative_answers=record.answers[1:],
         )
         return MultiPageDocumentInstance(

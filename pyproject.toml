@@ -1,5 +1,5 @@
 [project]
-name = "agentic"
+name = "mmagentic"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -7,7 +7,9 @@ requires-python = ">=3.13"
 dependencies = ["atria-core", "docling>=2.127.0"]
 
 [tool.uv.sources]
-atria-core = { git = "https://github.com/atriaml/atria_core.git" }
+# Temporarily pointed at the local checkout to test a fix to
+# _StoreImagesToFiles (MultiPageDocumentInstance support) before upstreaming.
+atria-core = { path = "../atria_core", editable = true }
 
 [build-system]
 requires = ["hatchling"]
