@@ -33,13 +33,13 @@ name = "agentic"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "atria-datasets" },
+    { name = "atria-core" },
     { name = "docling" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "atria-datasets", git = "https://github.com/atriaml/atria_datasets.git" },
+    { name = "atria-core", git = "https://github.com/atriaml/atria_core.git" },
     { name = "docling", specifier = ">=2.127.0" },
 ]
 
@@ -223,7 +223,7 @@ wheels = [
 [[package]]
 name = "atria-core"
 version = "0.1.8"
-source = { git = "https://github.com/atriaml/atria_core#83d54dce055869e9d7d56860b7e74574b7a36a16" }
+source = { git = "https://github.com/atriaml/atria_core.git#c435d4ce3a8cf793d81fa699f6ac2e293c65bfdf" }
 dependencies = [
     { name = "aiohttp" },
     { name = "beautifulsoup4" },
@@ -259,14 +259,6 @@ dependencies = [
     { name = "rich" },
     { name = "tqdm" },
     { name = "webdataset" },
-]
-
-[[package]]
-name = "atria-datasets"
-version = "0.0.0"
-source = { git = "https://github.com/atriaml/atria_datasets.git#3fb5e6718fbd6b91c2b7a68fbd4b7f99b9b2dde7" }
-dependencies = [
-    { name = "atria-core" },
 ]
 
 [[package]]
@@ -779,19 +771,19 @@ wheels = [
 
 [[package]]
 name = "docling"
-version = "2.127.0"
+version = "2.128.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "docling-slim", extra = ["standard"] },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4f/4c/4d0c0fb578869b0dbe71bc81dd5eb44d888ee4cb49ebbb0b438f13c2a950/docling-2.127.0.tar.gz", hash = "sha256:b30995b6619e9ad343af43968124c1bf637b23ed56c9fb9ea81782be058da675", size = 9091, upload-time = "2026-09-14T08:59:25.135Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b9/3b/832c0730098a858091d1bd5836a331fe827ea459c11d25d4dfd6abf3ff2d/docling-2.128.0.tar.gz", hash = "sha256:84d30ee769c1f5963070b5b9c82801b641c57ca7b9f4d8f5fde6ed55362e94b3", size = 9090, upload-time = "2026-09-16T15:15:04.917Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bf/d1/2ccf40b58524e759c3ccabf736789864442b918b5b04331f8c6ade662b78/docling-2.127.0-py3-none-any.whl", hash = "sha256:53e97becc63a38fc4253d6d2a698844e32280d618098115f58901b751dd11337", size = 5227, upload-time = "2026-09-14T08:59:23.958Z" },
+    { url = "https://files.pythonhosted.org/packages/2d/35/98f0df18c535de34b2ed9ddd61ad7dfdfa88f14237ad4f54e6e14c0314d2/docling-2.128.0-py3-none-any.whl", hash = "sha256:71d19966cacaf970a7fc90640cd4f9141b4c5600e7ef1c604f864ba6e73b6fbe", size = 5228, upload-time = "2026-09-16T15:15:03.624Z" },
 ]
 
 [[package]]
 name = "docling-core"
-version = "2.96.1"
+version = "2.97.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "defusedxml" },
@@ -809,9 +801,9 @@ dependencies = [
     { name = "typer" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/66/28/772135dd81a6e0d1a3ef8ebf28896a2e342d637e2374b8dced00a34369e0/docling_core-2.96.1.tar.gz", hash = "sha256:1d33be46d1a284585df0b8f57f5cd815d85126b5a81c3310e84238b6c8889ce7", size = 377852, upload-time = "2026-09-15T07:32:57.824Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/56/dd/2e5a7bfb27a0c3813e539f1ef3b9298a56cb4a71d4ca0ea38aaf19ce60a1/docling_core-2.97.0.tar.gz", hash = "sha256:79b44ba7ed4e344b13cd31584464ff8a8dae8ff16e13f2e512afc6cc9ab87c19", size = 379356, upload-time = "2026-09-16T14:59:28.442Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/be/f0/ee691277477dbbf3e25a046a97a96bee1ea7cdddf0f4b9cb8cf0770a19dd/docling_core-2.96.1-py3-none-any.whl", hash = "sha256:17ed0c525a0c364ed6ff6cab09e817fcff5142dca9c113ed0f61b4f23a278852", size = 302945, upload-time = "2026-09-15T07:32:55.996Z" },
+    { url = "https://files.pythonhosted.org/packages/ec/26/b6fa808dde54938cc893a755a6f62fcc1c9513860d5e56ec816390b59323/docling_core-2.97.0-py3-none-any.whl", hash = "sha256:ae1f79c268691a31bcb47504b15f0c7a493afd242a98ef7b40f5a7052e1150bd", size = 303742, upload-time = "2026-09-16T14:59:26.614Z" },
 ]
 
 [package.optional-dependencies]
@@ -869,7 +861,7 @@ wheels = [
 
 [[package]]
 name = "docling-slim"
-version = "2.127.0"
+version = "2.128.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "certifi" },
@@ -882,9 +874,9 @@ dependencies = [
     { name = "requests" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/09/e1/cd31f78c82a3a7cfc52238c5ab7e03ab3e1fa3e834c77639f3093d308e1d/docling_slim-2.127.0.tar.gz", hash = "sha256:c1d7c793c8528eb97112274e6c5609c9a5afa7966ae4c3f29806b22f1f23925c", size = 679966, upload-time = "2026-09-14T08:58:05.681Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/2f/86/a6a9e0b4a4e6acda68696a19291b705f7b8aebf450112049160acd419c5c/docling_slim-2.128.0.tar.gz", hash = "sha256:a0d95e856016147c3eb0cdedc6e986a2ece86a99830bc3e8be7887b234552170", size = 691249, upload-time = "2026-09-16T15:13:44.475Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/93/b9/ef355818fd08b01b50d22e01980321c2336d50384da97bed2a6353656835/docling_slim-2.127.0-py3-none-any.whl", hash = "sha256:aee124e7ada544d8f2776d2e39aaa14a6c38d8252ae8db530bda2b4afe0c0fa2", size = 844545, upload-time = "2026-09-14T08:58:03.684Z" },
+    { url = "https://files.pythonhosted.org/packages/64/41/07ccf8bd69ccd69b23df535b1ed2213a82e78acb32c5949588da2494d71f/docling_slim-2.128.0-py3-none-any.whl", hash = "sha256:19c361a3ea1d3f14c621d68fef34ccacfcf69592643ddc43b1c3a590bbba6210", size = 856504, upload-time = "2026-09-16T15:13:42.427Z" },
 ]
 
 [package.optional-dependencies]
@@ -1059,7 +1051,7 @@ http = [
 
 [[package]]
 name = "gdown"
-version = "6.2.0"
+version = "6.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "beautifulsoup4" },
@@ -1067,9 +1059,9 @@ dependencies = [
     { name = "requests", extra = ["socks"] },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/39/54/95355a2bce205f67276236a7469d12f90dbe4c5b155f163a5ea5bd2353bc/gdown-6.2.0.tar.gz", hash = "sha256:0bbf25d3761262263a2d9d4a6cb26ebc7e0f225ad8f13483209992508bccdc54", size = 337785, upload-time = "2026-09-06T06:03:11.345Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b0/e6/938b4f831a7bacb5ea7c862d92bbab937561f268fbf11ee0cc9716fad769/gdown-6.3.0.tar.gz", hash = "sha256:1f4a4c641ad50654fe4801eacdd0091810f570825bb7b562d37039c7a43c5731", size = 347380, upload-time = "2026-09-16T10:10:16.04Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c3/40/64585bb47dc79d9b03cbd4f009db2e39d6d0fc2115819a0b627c47ffda9d/gdown-6.2.0-py3-none-any.whl", hash = "sha256:72541f5671dff3f412b8a66e2b995895c9df0569284cc135b64745e501667f55", size = 44686, upload-time = "2026-09-06T06:03:10.059Z" },
+    { url = "https://files.pythonhosted.org/packages/72/fe/34afee5e481a527169d72a2fcae1139ed4d7edabb1e8b8c6a81a32df8656/gdown-6.3.0-py3-none-any.whl", hash = "sha256:2d71e39962e7ed63d7406e8532d6130ab0b3cc9fb5155372f6d0945fdad21d5c", size = 48304, upload-time = "2026-09-16T10:10:14.787Z" },
 ]
 
 [[package]]

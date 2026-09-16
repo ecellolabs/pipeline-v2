@@ -60,7 +60,7 @@ class Preprocessor:
 
 
 def main() -> None:
-    import atria_datasets  # type: ignore registers all datasets
+    from agentic.datasets import *  # type: ignore registers all datasets
 
     parser = argparse.ArgumentParser()
     parser.add_argument("name")

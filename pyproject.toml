@@ -4,13 +4,10 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = [
-    "atria-datasets",
-    "docling>=2.127.0",
-]
+dependencies = ["atria-core", "docling>=2.127.0"]
 
 [tool.uv.sources]
-atria-datasets = { git = "https://github.com/atriaml/atria_datasets.git" }
+atria-core = { git = "https://github.com/atriaml/atria_core.git" }
 
 [build-system]
 requires = ["hatchling"]
