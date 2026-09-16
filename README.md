@@ -24,7 +24,7 @@ Output: per-split sample visualizations under `./test/<name>/<split>/`.
 
 Pass `--split {train,validation,test}` to build and load only that split's files, instead of all splits.
 
-Pass `--enable-caching` (on by default; use `--no-enable-caching` to disable) to write a fast-reload cache of the dataset via `atria_core`'s `Cacher` (`--storage-type msgpack`, the default). Images are always kept as on-disk files referenced by path rather than embedded in the cache, so reload stays cheap.
+Pass `--enable-caching` (on by default; use `--no-enable-caching` to disable) to write a fast-reload cache of the dataset via `atria_core`'s `Cacher` (`--storage-type msgpack`, the default). Images are always kept as on-disk files referenced by path rather than embedded in the cache, so reload stays cheap. With and without caching the datasets get prepared already but caching additionally allows faster loading of the data instead of reading heavy huggingface files over and over on reach run. Mspgack caching is very fast and optimied for loading.
 
 ### Step 2 — `usage/01_preprocess.py`
 
@@ -42,3 +42,16 @@ python usage/01_preprocess.py slidevqa --num-workers 4
 - `--num-workers` — number of worker processes; each builds its own `DoclingTransform` (docling's converter isn't cheaply shareable across processes). Defaults to `1` (no multiprocessing).
 
 Already-parsed pages are skipped on re-run, so the script can be safely re-invoked to resume an interrupted run.
+
+### Next steps
+
+The pipeline follows this flow:
+
+```
+load -> MultiPageDocumentInstance -> preprocess transform -> ParsedInstance
+     -> tree indexing -> ParsedWithTree -> map samples to PydanticAI dataset
+```
+
+Each arrow is its own stage, and each stage should stay stateless: read its input from disk, write its output back to disk, and touch nothing else. Keep every stage runnable as its own script, the same way `00_prepare_dataset.py` and `01_preprocess.py` are. This makes it far easier to debug and inspect samples at any point in the pipeline, without having to rerun everything upstream.
+
+Once a dataset has been mapped to its final PydanticAI form, dump it to JSON. Those JSON files are the handoff point, they get loaded independently by the main Agentic Pipeline. This repo's job ends there; it only prepares datasets.
