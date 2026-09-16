@@ -90,26 +90,44 @@ class _IMDBRecord:
         )
 
 
-class SplitIterator(Sequence[_IMDBRecord]):
+@dataclass
+class _Sample:
+    image_id: str
+    records: list[_IMDBRecord]
+
+
+class SplitIterator(Sequence[_Sample]):
     def __init__(self, imdb_dir: Path, split: DatasetSplitType) -> None:
         import numpy as np
 
         imdb_path = imdb_dir / f"imdb_{_SPLIT_NAMES[split]}.npy"
         logger.info(f"Loading MP-DocVQA {split.value} split from {imdb_path}")
         data = np.load(imdb_path, allow_pickle=True)
-        self._records = [_IMDBRecord.from_raw(record) for record in data[1:]]
+        records = [_IMDBRecord.from_raw(record) for record in data[1:]]
+
+        logger.info(f"Grouping MP-DocVQA {split.value} split records by document")
+        records_by_image_id: dict[str, list[_IMDBRecord]] = {}
+        for record in records:
+            records_by_image_id.setdefault(record.image_id, []).append(record)
+        self._image_ids = list(records_by_image_id)
+        self._records_by_image_id = records_by_image_id
 
     @overload
-    def __getitem__(self, index: int) -> _IMDBRecord: ...
+    def __getitem__(self, index: int) -> _Sample: ...
 
     @overload
-    def __getitem__(self, index: slice) -> Sequence[_IMDBRecord]: ...
+    def __getitem__(self, index: slice) -> Sequence[_Sample]: ...
 
-    def __getitem__(self, index: int | slice) -> _IMDBRecord | Sequence[_IMDBRecord]:
-        return self._records[index]
+    def __getitem__(self, index: int | slice) -> _Sample | Sequence[_Sample]:
+        if isinstance(index, slice):
+            return [self[item] for item in range(*index.indices(len(self)))]
+        image_id = self._image_ids[index]
+        return _Sample(
+            image_id=image_id, records=self._records_by_image_id[image_id]
+        )
 
     def __len__(self) -> int:
-        return len(self._records)
+        return len(self._image_ids)
 
 
 class InputTransform:
@@ -140,33 +158,41 @@ class InputTransform:
             content=content,
         )
 
-    def __call__(self, record: _IMDBRecord) -> MultiPageDocumentInstance:
+    def __call__(self, sample: _Sample) -> MultiPageDocumentInstance:
+        # All records for a document share the same pages/OCR content; only
+        # the question/answer fields differ per record.
+        first_record = sample.records[0]
         pages = [
             self._build_page(
-                record.image_id,
+                first_record.image_id,
                 page_number,
                 image_name,
-                record.ocr_tokens[page_number],
-                record.ocr_normalized_boxes[page_number],
+                first_record.ocr_tokens[page_number],
+                first_record.ocr_normalized_boxes[page_number],
             )
-            for page_number, image_name in enumerate(record.image_name)
+            for page_number, image_name in enumerate(first_record.image_name)
         ]
 
         # Test-split records carry no ground truth: leave answer fields empty
         # rather than indexing into an empty `answers` list.
-        qa_pair = MultiPageQAPair(
-            id=record.question_id,
-            question_text=record.question,
-            answer_text=record.answers[0] if record.answers else "",
-            evidence_pages=(
-                [record.answer_page_idx] if record.answer_page_idx is not None else []
-            ),
-            alternative_answers=record.answers[1:],
-        )
+        qa_pairs = [
+            MultiPageQAPair(
+                id=record.question_id,
+                question_text=record.question,
+                answer_text=record.answers[0] if record.answers else "",
+                evidence_pages=(
+                    [record.answer_page_idx]
+                    if record.answer_page_idx is not None
+                    else []
+                ),
+                alternative_answers=record.answers[1:],
+            )
+            for record in sample.records
+        ]
         return MultiPageDocumentInstance(
-            sample_id=record.image_id, pages=pages
+            sample_id=sample.image_id, pages=pages
         ).add_annotation(
-            annotation=MultiPageQuestionAnsweringAnnotation(qa_pairs=[qa_pair])
+            annotation=MultiPageQuestionAnsweringAnnotation(qa_pairs=qa_pairs)
         )
 
 
@@ -226,5 +252,5 @@ class MPDocVQA(Dataset[MultiPageDocumentInstance]):
 
     def _build_input_transform(
         self,
-    ) -> Callable[[_IMDBRecord], MultiPageDocumentInstance]:
+    ) -> Callable[[_Sample], MultiPageDocumentInstance]:
         return InputTransform(images_dir=Path(self.data_dir) / "mpdocvqa" / "images")

@@ -41,15 +41,16 @@ def benchmark_dataset(dataset: Any, n: int = 10) -> None:
 
 def prepare_dataset(
     name: str,
-    output_dir: str = "./test",
+    output_dir: str = "./dataset_visualizations",
     enable_caching: bool = False,
     storage_type: FileStorageType = FileStorageType.DELTALAKE,
     visualize_samples: bool = True,
     benchmark: bool = False,
+    data_dir: str | None = None,
     **dataset_kwargs: Any,
 ) -> None:
     """Load and cache a dataset, then inspect the first sample of each split."""
-    dataset = DatasetBuilder().load(name, **dataset_kwargs)
+    dataset = DatasetBuilder().load(name, data_dir=data_dir, **dataset_kwargs)
     if enable_caching:
         print("Caching")
         dataset = dataset.cache(storage_type)
@@ -84,7 +85,9 @@ def main() -> None:
     parser.add_argument(
         "--split", choices=[s.value for s in DatasetSplitType], default=None
     )
-    parser.add_argument("--enable-caching", action="store_true", default=True)
+    parser.add_argument(
+        "--enable-caching", action=argparse.BooleanOptionalAction, default=True
+    )
     parser.add_argument(
         "--storage-type",
         choices=[t.value for t in FileStorageType],
