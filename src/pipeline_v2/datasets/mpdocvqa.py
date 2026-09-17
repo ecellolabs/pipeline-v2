@@ -19,7 +19,7 @@ from atria_core.types import (
     SinglePageDocumentInstance,
 )
 
-from mmagentic.datasets.utils import require_manual_path
+from .utils import require_manual_path
 
 _HOMEPAGE = "https://github.com/rubenpt91/MP-DocVQA-Framework"
 _RRC_PORTAL = "https://rrc.cvc.uab.es/?ch=17&com=downloads"

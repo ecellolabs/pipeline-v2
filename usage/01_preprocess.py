@@ -16,7 +16,7 @@ from atria_core.logger import get_logger
 from atria_core.types import DatasetSplitType, MultiPageDocumentInstance
 from docling.datamodel.pipeline_options import PdfPipelineOptions
 
-from mmagentic.parsers.docling import DoclingTransform
+from pipeline_v2.parsers.docling import DoclingTransform
 
 logger = get_logger(__name__)
 
@@ -60,7 +60,7 @@ class Preprocessor:
 
 
 def main() -> None:
-    from mmagentic.datasets import *  # type: ignore registers all datasets
+    from pipeline_v2.datasets import *  # type: ignore registers all datasets
 
     parser = argparse.ArgumentParser()
     parser.add_argument("name")

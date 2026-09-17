@@ -13,7 +13,7 @@ from atria_core.types import DatasetSplitType
 from atria_core.visualizers import visualize
 from tqdm import tqdm
 
-from mmagentic.datasets import *
+from pipeline_v2.datasets import *
 
 logger = get_logger(__name__)
 
