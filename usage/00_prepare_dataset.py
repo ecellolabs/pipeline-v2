@@ -106,6 +106,7 @@ def main() -> None:
         choices=[t.value for t in FileStorageType],
         default=FileStorageType.MSGPACK.value,
     )
+    parser.add_argument("--data-dir", default=None)
     args = parser.parse_args()
     split = DatasetSplitType(args.split) if args.split is not None else None
     prepare_dataset(
@@ -113,9 +114,9 @@ def main() -> None:
         split=split,
         enable_caching=args.enable_caching,
         storage_type=FileStorageType(args.storage_type),
+        data_dir=args.data_dir,
         max_samples=args.max_samples,
     )
-
 
 if __name__ == "__main__":
     main()
