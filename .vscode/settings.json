@@ -7,8 +7,6 @@
         "**/**__pycache__": true,
         "**/**.pytest_cache": true,
         "**/**.mypy_cache": true,
-        "**/**.venv": true,
-        "**/**.github": true,
         "**/**.htmlcov": true,
         "**/**.ruff_cache": true,
         "**/**.coverage": true,
