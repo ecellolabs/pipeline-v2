@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -23,6 +24,7 @@ from .utils import require_manual_path
 
 _HOMEPAGE = "https://github.com/rubenpt91/MP-DocVQA-Framework"
 _RRC_PORTAL = "https://rrc.cvc.uab.es/?ch=17&com=downloads"
+_IMDBS_URL = "https://datasets.cvc.uab.es/rrc/DocVQA/Task4/mpdocvqa_imdbs.zip"
 _SPLIT_NAMES = {
     DatasetSplitType.train: "train",
     DatasetSplitType.validation: "val",
@@ -205,6 +207,76 @@ class MPDocVQAConfig(DatasetConfig):
     max_samples: int | None = None
 
 
+def _download_and_extract_imdbs(imdb_dir: Path) -> None:
+    """Download mpdocvqa_imdbs.zip and extract into imdb_dir.
+
+    Falls back to disabling SSL verification if the host's CA chain is not trusted
+    by Python's certifi bundle (common with academic server certificates).
+    """
+    import zipfile
+
+    import requests
+    import urllib3
+    from tqdm import tqdm
+
+    download_dir = imdb_dir.parent / ".download_cache"
+    download_dir.mkdir(parents=True, exist_ok=True)
+    zip_path = download_dir / "mpdocvqa_imdbs.zip"
+    incomplete_path = download_dir / "mpdocvqa_imdbs.zip.incomplete"
+
+    if not zip_path.exists():
+        logger.info(f"Downloading MP-DocVQA IMDBs from {_IMDBS_URL}")
+        try:
+            response = requests.get(_IMDBS_URL, stream=True, timeout=30)
+            response.raise_for_status()
+        except requests.exceptions.SSLError:
+            logger.warning(
+                f"SSL verification failed for {_IMDBS_URL}. Retrying with verification disabled."
+            )
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            response = requests.get(_IMDBS_URL, stream=True, verify=False, timeout=30)
+            response.raise_for_status()
+
+        total_size = int(response.headers.get("content-length", 0))
+        block_size = 1024 * 1024
+
+        try:
+            with open(incomplete_path, "wb") as f, tqdm(
+                total=total_size,
+                unit="B",
+                unit_scale=True,
+                unit_divisor=1024,
+                desc="mpdocvqa_imdbs.zip",
+            ) as pbar:
+                for chunk in response.iter_content(chunk_size=block_size):
+                    if chunk:
+                        f.write(chunk)
+                        pbar.update(len(chunk))
+            incomplete_path.rename(zip_path)
+        except (OSError, RuntimeError, requests.RequestException):
+            incomplete_path.unlink(missing_ok=True)
+            raise
+        finally:
+            response.close()
+
+    logger.info(f"Extracting {zip_path} to {imdb_dir}")
+    temp_extract_dir = imdb_dir.parent / "imdb_extract_tmp"
+    if temp_extract_dir.exists():
+        shutil.rmtree(temp_extract_dir)
+    temp_extract_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        with zipfile.ZipFile(zip_path, "r") as zf:
+            zf.extractall(temp_extract_dir)
+        if imdb_dir.exists():
+            shutil.rmtree(imdb_dir)
+        temp_extract_dir.rename(imdb_dir)
+    except (OSError, RuntimeError, zipfile.BadZipFile):
+        if temp_extract_dir.exists():
+            shutil.rmtree(temp_extract_dir)
+        raise
+
+
 @datasets.register
 class MPDocVQA(Dataset[MultiPageDocumentInstance, MPDocVQAConfig]):
     """MP-DocVQA: question answering over multi-page scanned documents,
@@ -215,6 +287,25 @@ class MPDocVQA(Dataset[MultiPageDocumentInstance, MPDocVQAConfig]):
     def _download(
         self, data_dir: str, access_token: str | None = None
     ) -> dict[str, Path]:
+        imdb_dir = Path(data_dir) / "mpdocvqa" / "imdb"
+        has_imdbs = (
+            imdb_dir.is_dir()
+            and (imdb_dir / "imdb_train.npy").exists()
+            and (imdb_dir / "imdb_val.npy").exists()
+            and (imdb_dir / "imdb_test.npy").exists()
+        )
+        if not has_imdbs:
+            if imdb_dir.exists():
+                shutil.rmtree(imdb_dir)
+            (Path(data_dir) / "mpdocvqa").mkdir(parents=True, exist_ok=True)
+            try:
+                _download_and_extract_imdbs(imdb_dir)
+            except (OSError, RuntimeError, ValueError) as e:
+                logger.warning(
+                    f"Automatic download of IMDBs failed from {_IMDBS_URL}: {e}. "
+                    "Falling back to manual download instructions."
+                )
+
         imdb_dir = require_manual_path(
             data_dir=data_dir,
             expected_path="mpdocvqa/imdb",
