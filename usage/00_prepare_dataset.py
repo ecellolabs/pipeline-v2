@@ -48,14 +48,19 @@ def prepare_dataset(
     benchmark: bool = False,
     data_dir: str | None = None,
     max_samples: int | None = None,
+    split: DatasetSplitType | None = None,
     **dataset_kwargs: Any,
 ) -> None:
     """Load and cache a dataset, then inspect the first sample of each split."""
     dataset = DatasetBuilder().load(
-        name, data_dir=data_dir, max_samples=max_samples, **dataset_kwargs
+        name,
+        data_dir=data_dir,
+        max_samples=max_samples,
+        split=split,
+        **dataset_kwargs,
     )
     if enable_caching:
-        dataset = dataset.cache(storage_type, max_samples=max_samples)
+        dataset = dataset.cache(storage_type, split=split)
     dataset = dataset.build()
 
     logger.info("Cached dataset:\n%s", dataset)
