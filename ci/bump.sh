@@ -10,10 +10,10 @@ if [[ -n "$(git status --porcelain)" ]]; then
   exit 1
 fi
 
-# 2️⃣ Make sure we are on main
+# 2️⃣ Make sure we are on master
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-if [[ "$CURRENT_BRANCH" != "main" ]]; then
-  echo "❌ You must be on main branch. Current: $CURRENT_BRANCH"
+if [[ "$CURRENT_BRANCH" != "master" ]]; then
+  echo "❌ You must be on master branch. Current: $CURRENT_BRANCH"
   exit 1
 fi
 
