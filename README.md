@@ -37,17 +37,31 @@ pipeline-v2/
 
 ---
 
+## Setup & Authentication
+
+1. **Install dependencies and sync environment**:
+   ```bash
+   uv sync
+   ```
+
+2. **Authenticate with Hugging Face**:
+   Datasets such as `slidevqa` require Hugging Face authentication. Log in once with:
+   ```bash
+   uv run hf auth login
+   ```
+   *(Paste your Hugging Face access token when prompted. Credentials will be stored locally at `~/.cache/huggingface/token`.)*
+
+3. **Activate the virtual environment**:
+   ```bash
+   source .venv/bin/activate
+   # or run commands directly via: uv run python usage/...
+   ```
+
+---
+
 ## Usage scripts
 
 `pipeline_v2.datasets` registers three custom datasets: `mmlongbench_doc`, `mpdocvqa`, and `slidevqa`. Both usage scripts work with any of the three — just swap the dataset name.
-
-Activate the environment first, then run scripts as plain Python or via `uv run` from the repo root:
-
-```bash
-source .venv/bin/activate
-# or
-# uv run python usage/...
-```
 
 ### Step 1 — `usage/00_prepare_dataset.py`
 
