@@ -241,13 +241,16 @@ def _download_and_extract_imdbs(imdb_dir: Path) -> None:
         block_size = 1024 * 1024
 
         try:
-            with open(incomplete_path, "wb") as f, tqdm(
-                total=total_size,
-                unit="B",
-                unit_scale=True,
-                unit_divisor=1024,
-                desc="mpdocvqa_imdbs.zip",
-            ) as pbar:
+            with (
+                open(incomplete_path, "wb") as f,
+                tqdm(
+                    total=total_size,
+                    unit="B",
+                    unit_scale=True,
+                    unit_divisor=1024,
+                    desc="mpdocvqa_imdbs.zip",
+                ) as pbar,
+            ):
                 for chunk in response.iter_content(chunk_size=block_size):
                     if chunk:
                         f.write(chunk)
