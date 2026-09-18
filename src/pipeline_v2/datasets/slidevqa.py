@@ -7,7 +7,13 @@ from pathlib import Path
 from typing import overload
 
 import numpy as np
-from atria_core.datasets import AtriaDownloadManager, Dataset, UrlSpec, datasets
+from atria_core.datasets import (
+    AtriaDownloadManager,
+    Dataset,
+    DatasetConfig,
+    UrlSpec,
+    datasets,
+)
 from atria_core.logger import get_logger
 from atria_core.types import (
     AnnotatedObject,
@@ -94,7 +100,12 @@ class _Sample:
 
 
 class SplitIterator(Sequence[_Sample]):
-    def __init__(self, data_dir: str, split: DatasetSplitType) -> None:
+    def __init__(
+        self,
+        data_dir: str,
+        split: DatasetSplitType,
+        max_samples: int | None = None,
+    ) -> None:
         from datasets import load_dataset
 
         logger.info(f"Loading SlideVQA {split.value} split from Hugging Face")
@@ -128,6 +139,8 @@ class SplitIterator(Sequence[_Sample]):
         logger.info(f"Grouping SlideVQA {split.value} split rows by deck")
         self._row_indices_by_deck = self._index_rows_by_deck()
         self._deck_names = list(self._row_indices_by_deck)
+        if max_samples is not None:
+            self._deck_names = self._deck_names[:max_samples]
 
         self._images_dir = Path(data_dir) / "images" / _HF_SPLIT_NAMES[split]
         self._images_dir.mkdir(parents=True, exist_ok=True)
@@ -164,8 +177,8 @@ class SplitIterator(Sequence[_Sample]):
 
         import tqdm
 
-        deck_names = list(self._row_indices_by_deck.keys())
-        row_indices_list = list(self._row_indices_by_deck.values())
+        deck_names = self._deck_names
+        row_indices_list = [self._row_indices_by_deck[name] for name in deck_names]
         with concurrent.futures.ThreadPoolExecutor() as executor:
             list(
                 tqdm.tqdm(
@@ -321,8 +334,12 @@ class InputTransform:
         )
 
 
+class SlideVQAConfig(DatasetConfig):
+    max_samples: int | None = None
+
+
 @datasets.register
-class SlideVQA(Dataset[MultiPageDocumentInstance]):
+class SlideVQA(Dataset[MultiPageDocumentInstance, SlideVQAConfig]):
     """SlideVQA: question answering over multi-page slide decks, with
     evidence-page and bounding-box ground truth."""
 
@@ -354,7 +371,9 @@ class SlideVQA(Dataset[MultiPageDocumentInstance]):
     def _build_split_iterator(
         self, split: DatasetSplitType, data_dir: str
     ) -> SplitIterator:
-        return SplitIterator(data_dir=data_dir, split=split)
+        return SplitIterator(
+            data_dir=data_dir, split=split, max_samples=self.config.max_samples
+        )
 
     def _build_input_transform(self) -> Callable[[_Sample], MultiPageDocumentInstance]:
         return InputTransform()

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import overload
 
-from atria_core.datasets import Dataset, datasets
+from atria_core.datasets import Dataset, DatasetConfig, datasets
 from atria_core.logger import get_logger
 from atria_core.types import (
     BoundingBoxMode,
@@ -97,7 +97,12 @@ class _Sample:
 
 
 class SplitIterator(Sequence[_Sample]):
-    def __init__(self, imdb_dir: Path, split: DatasetSplitType) -> None:
+    def __init__(
+        self,
+        imdb_dir: Path,
+        split: DatasetSplitType,
+        max_samples: int | None = None,
+    ) -> None:
         import numpy as np
 
         imdb_path = imdb_dir / f"imdb_{_SPLIT_NAMES[split]}.npy"
@@ -110,6 +115,8 @@ class SplitIterator(Sequence[_Sample]):
         for record in records:
             records_by_image_id.setdefault(record.image_id, []).append(record)
         self._image_ids = list(records_by_image_id)
+        if max_samples is not None:
+            self._image_ids = self._image_ids[:max_samples]
         self._records_by_image_id = records_by_image_id
 
     @overload
@@ -196,8 +203,12 @@ class InputTransform:
         )
 
 
+class MPDocVQAConfig(DatasetConfig):
+    max_samples: int | None = None
+
+
 @datasets.register
-class MPDocVQA(Dataset[MultiPageDocumentInstance]):
+class MPDocVQA(Dataset[MultiPageDocumentInstance, MPDocVQAConfig]):
     """MP-DocVQA: question answering over multi-page scanned documents,
     reusing SP-DocVQA's questions and answers with added document context."""
 
@@ -248,7 +259,11 @@ class MPDocVQA(Dataset[MultiPageDocumentInstance]):
     def _build_split_iterator(
         self, split: DatasetSplitType, data_dir: str
     ) -> SplitIterator:
-        return SplitIterator(imdb_dir=Path(data_dir) / "mpdocvqa" / "imdb", split=split)
+        return SplitIterator(
+            imdb_dir=Path(data_dir) / "mpdocvqa" / "imdb",
+            split=split,
+            max_samples=self.config.max_samples,
+        )
 
     def _build_input_transform(
         self,

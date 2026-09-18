@@ -47,12 +47,15 @@ def prepare_dataset(
     visualize_samples: bool = True,
     benchmark: bool = False,
     data_dir: str | None = None,
+    max_samples: int | None = None,
     **dataset_kwargs: Any,
 ) -> None:
     """Load and cache a dataset, then inspect the first sample of each split."""
-    dataset = DatasetBuilder().load(name, data_dir=data_dir, **dataset_kwargs)
+    dataset = DatasetBuilder().load(
+        name, data_dir=data_dir, max_samples=max_samples, **dataset_kwargs
+    )
     if enable_caching:
-        dataset = dataset.cache(storage_type)
+        dataset = dataset.cache(storage_type, max_samples=max_samples)
     dataset = dataset.build()
 
     logger.info("Cached dataset:\n%s", dataset)
@@ -85,6 +88,12 @@ def main() -> None:
         "--split", choices=[s.value for s in DatasetSplitType], default=None
     )
     parser.add_argument(
+        "--max-samples",
+        type=int,
+        default=None,
+        help="Maximum number of samples/decks to load and cache.",
+    )
+    parser.add_argument(
         "--enable-caching", action=argparse.BooleanOptionalAction, default=True
     )
     parser.add_argument(
@@ -99,6 +108,7 @@ def main() -> None:
         split=split,
         enable_caching=args.enable_caching,
         storage_type=FileStorageType(args.storage_type),
+        max_samples=args.max_samples,
     )
 
 

@@ -10,3 +10,4 @@ wheels/
 .venv
 dataset_visualizations/
 .claude
+.DS_Store

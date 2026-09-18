@@ -59,9 +59,11 @@ python usage/00_prepare_dataset.py mpdocvqa
 python usage/00_prepare_dataset.py slidevqa
 ```
 
-Output: per-split sample visualizations under `./test/<name>/<split>/`.
+Output: per-split sample visualizations under `./dataset_visualizations/<name>/<split>/`.
 
 Pass `--split {train,validation,test}` to build and load only that split's files, instead of all splits.
+
+Pass `--max-samples N` to restrict loading and caching to `N` samples/decks (ideal for fast pilot runs on a laptop before cluster deployment).
 
 Pass `--enable-caching` (on by default; use `--no-enable-caching` to disable) to write a fast-reload cache of the dataset via `atria_core`'s `Cacher` (`--storage-type msgpack`, the default). Images are always kept as on-disk files referenced by path rather than embedded in the cache, so reload stays cheap. With and without caching the datasets get prepared already but caching additionally allows faster loading of the data instead of reading heavy huggingface files over and over on reach run. Mspgack caching is very fast and optimied for loading.
 
@@ -78,6 +80,7 @@ python usage/01_preprocess.py slidevqa --num-workers 4
 - First argument — the registered dataset name (`mmlongbench_doc`, `mpdocvqa`, or `slidevqa`).
 - Outputs are written inside the dataset's own `data_dir` (wherever that dataset was downloaded/cached to) at `<data_dir>/docling/<split>/<sample.key>/<page.key>.json` — no separate output path needed.
 - `--split {train,validation,test}` — build and process only that split, instead of all of them.
+- `--max-samples N` — preprocess only up to `N` samples/decks.
 - `--num-workers` — number of worker processes; each builds its own `DoclingTransform` (docling's converter isn't cheaply shareable across processes). Defaults to `1` (no multiprocessing).
 
 Already-parsed pages are skipped on re-run, so the script can be safely re-invoked to resume an interrupted run.

@@ -7,7 +7,13 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import overload
 
-from atria_core.datasets import AtriaDownloadManager, Dataset, UrlSpec, datasets
+from atria_core.datasets import (
+    AtriaDownloadManager,
+    Dataset,
+    DatasetConfig,
+    UrlSpec,
+    datasets,
+)
 from atria_core.logger import get_logger
 from atria_core.types import (
     DatasetMetadata,
@@ -62,7 +68,12 @@ class _Sample:
 
 
 class SplitIterator(Sequence[_Sample]):
-    def __init__(self, data_dir: str, split: DatasetSplitType) -> None:
+    def __init__(
+        self,
+        data_dir: str,
+        split: DatasetSplitType,
+        max_samples: int | None = None,
+    ) -> None:
         from datasets import load_dataset
 
         logger.info(f"Loading MMLongBench-Doc {split.value} split from Hugging Face")
@@ -71,6 +82,8 @@ class SplitIterator(Sequence[_Sample]):
         logger.info(f"Grouping MMLongBench-Doc {split.value} split rows by document")
         self._row_indices_by_doc = self._index_rows_by_doc()
         self._doc_ids = list(self._row_indices_by_doc)  # used for PDF downloading only
+        if max_samples is not None:
+            self._doc_ids = self._doc_ids[:max_samples]
 
         self._pdf_dir = Path(data_dir) / "pdfs"
         self._pdf_dir.mkdir(parents=True, exist_ok=True)
@@ -161,8 +174,12 @@ class InputTransform:
         )
 
 
+class MMLongBenchDocConfig(DatasetConfig):
+    max_samples: int | None = None
+
+
 @datasets.register
-class MMLongBenchDoc(Dataset[MultiPageDocumentInstance]):
+class MMLongBenchDoc(Dataset[MultiPageDocumentInstance, MMLongBenchDocConfig]):
     """MMLongBench-Doc: question answering over long, multi-page PDF
     documents spanning research reports, financial filings, and manuals."""
 
@@ -185,7 +202,9 @@ class MMLongBenchDoc(Dataset[MultiPageDocumentInstance]):
     def _build_split_iterator(
         self, split: DatasetSplitType, data_dir: str
     ) -> SplitIterator:
-        return SplitIterator(data_dir=data_dir, split=split)
+        return SplitIterator(
+            data_dir=data_dir, split=split, max_samples=self.config.max_samples
+        )
 
     def _build_input_transform(self) -> Callable[[_Sample], MultiPageDocumentInstance]:
         return InputTransform()

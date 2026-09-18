@@ -16,6 +16,7 @@ from atria_core.logger import get_logger
 from atria_core.types import DatasetSplitType, MultiPageDocumentInstance
 from docling.datamodel.pipeline_options import PdfPipelineOptions
 
+from pipeline_v2.datasets import *
 from pipeline_v2.parsers.docling import DoclingTransform
 
 logger = get_logger(__name__)
@@ -60,12 +61,16 @@ class Preprocessor:
 
 
 def main() -> None:
-    from pipeline_v2.datasets import *  # type: ignore registers all datasets
-
     parser = argparse.ArgumentParser()
     parser.add_argument("name")
     parser.add_argument(
         "--split", choices=[s.value for s in DatasetSplitType], default=None
+    )
+    parser.add_argument(
+        "--max-samples",
+        type=int,
+        default=None,
+        help="Maximum number of samples/decks to preprocess.",
     )
     parser.add_argument("--num-workers", type=int, default=1)
     args = parser.parse_args()
@@ -73,7 +78,9 @@ def main() -> None:
 
     dataset = cast(
         Dataset[MultiPageDocumentInstance, DatasetConfig],
-        DatasetBuilder().load(args.name, split=split).build(),
+        DatasetBuilder()
+        .load(args.name, split=split, max_samples=args.max_samples)
+        .build(),
     )
     pipeline_options = PdfPipelineOptions(do_ocr=True)
     for split, split_iterator in dataset.split_iterators.items():
