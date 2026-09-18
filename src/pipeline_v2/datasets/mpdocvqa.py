@@ -129,9 +129,7 @@ class SplitIterator(Sequence[_Sample]):
         if isinstance(index, slice):
             return [self[item] for item in range(*index.indices(len(self)))]
         image_id = self._image_ids[index]
-        return _Sample(
-            image_id=image_id, records=self._records_by_image_id[image_id]
-        )
+        return _Sample(image_id=image_id, records=self._records_by_image_id[image_id])
 
     def __len__(self) -> int:
         return len(self._image_ids)

@@ -11,3 +11,6 @@ wheels/
 dataset_visualizations/
 .claude
 .DS_Store
+.mypy_cache
+.pytest_cache
+.coverage

@@ -5,7 +5,7 @@ import json
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import overload
+from typing import Any, overload
 
 from atria_core.datasets import (
     AtriaDownloadManager,
@@ -167,7 +167,10 @@ class InputTransform:
             )
             for qa_id, meta in enumerate(sample.qa_metas)
         ]
-        metadata = {"doc_id": sample.doc_id, "doc_type": sample.qa_metas[0].doc_type}
+        metadata: dict[str, Any] = {
+            "doc_id": sample.doc_id,
+            "doc_type": sample.qa_metas[0].doc_type,
+        }
 
         return replace(document, metadata=metadata).add_annotation(
             annotation=MultiPageQuestionAnsweringAnnotation(qa_pairs=qa_pairs)
