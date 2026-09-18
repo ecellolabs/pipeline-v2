@@ -22,6 +22,40 @@ from pipeline_v2.parsers.docling import DoclingTransform
 logger = get_logger(__name__)
 
 
+_worker_transform: DoclingTransform | None = None
+_worker_out_dir: Path | None = None
+
+
+def _init_worker(pipeline_options: PdfPipelineOptions, out_dir: Path) -> None:
+    global _worker_transform, _worker_out_dir
+    _worker_transform = DoclingTransform(pipeline_options=pipeline_options)
+    _worker_out_dir = out_dir
+
+
+def _process_sample(
+    sample: MultiPageDocumentInstance,
+    transform: DoclingTransform,
+    out_dir: Path,
+) -> None:
+    logger.info(f"sample_id={sample.sample_id!r} key={sample.key!r}")
+    sample_dir = out_dir / sample.key
+    sample_dir.mkdir(parents=True, exist_ok=True)
+    for page in sample.pages:
+        out_path = sample_dir / f"{page.key}.json"
+        if out_path.exists():
+            logger.info(f"skip page_id={page.sample_id!r} -> {out_path}")
+            continue
+        document = transform(page)
+        out_path.write_text(json.dumps(document.export_to_dict()))
+        logger.info(f"page_id={page.sample_id!r} key={page.key!r} -> {out_path}")
+
+
+def _process_sample_worker(sample: MultiPageDocumentInstance) -> None:
+    assert _worker_transform is not None
+    assert _worker_out_dir is not None
+    _process_sample(sample, _worker_transform, _worker_out_dir)
+
+
 @dataclass
 class Preprocessor:
     """Parses every page of every sample in a dataset split, writing each
@@ -33,31 +67,32 @@ class Preprocessor:
     pipeline_options: PdfPipelineOptions
     num_workers: int = 1
 
-    def _process_sample(self, sample: MultiPageDocumentInstance) -> None:
-        logger.info(f"sample_id={sample.sample_id!r} key={sample.key!r}")
-        transform = DoclingTransform(pipeline_options=self.pipeline_options)
-        sample_dir = self.out_dir / sample.key
-        sample_dir.mkdir(parents=True, exist_ok=True)
-        for page in sample.pages:
-            out_path = sample_dir / f"{page.key}.json"
-            if out_path.exists():
-                logger.info(f"skip page_id={page.sample_id!r} -> {out_path}")
-                continue
-            document = transform(page)
-            out_path.write_text(json.dumps(document.export_to_dict()))
-            logger.info(f"page_id={page.sample_id!r} key={page.key!r} -> {out_path}")
+    def _process_sample(
+        self,
+        sample: MultiPageDocumentInstance,
+        transform: DoclingTransform | None = None,
+    ) -> None:
+        if transform is None:
+            transform = DoclingTransform(pipeline_options=self.pipeline_options)
+        _process_sample(sample, transform, self.out_dir)
 
     def run(self, split_iterator: Iterable[MultiPageDocumentInstance]) -> None:
         self.out_dir.mkdir(parents=True, exist_ok=True)
 
         if self.num_workers <= 1:
+            transform = DoclingTransform(pipeline_options=self.pipeline_options)
             for sample in split_iterator:
-                self._process_sample(sample)
+                _process_sample(sample, transform, self.out_dir)
             return
 
-        with mp.Pool(self.num_workers) as pool:
-            for _ in pool.imap_unordered(self._process_sample, split_iterator):
+        with mp.Pool(
+            self.num_workers,
+            initializer=_init_worker,
+            initargs=(self.pipeline_options, self.out_dir),
+        ) as pool:
+            for _ in pool.imap_unordered(_process_sample_worker, split_iterator):
                 pass
+
 
 
 def main() -> None:
