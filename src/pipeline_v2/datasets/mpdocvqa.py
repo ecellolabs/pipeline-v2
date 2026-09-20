@@ -325,8 +325,8 @@ class MPDocVQA(Dataset[MultiPageDocumentInstance, MPDocVQAConfig]):
             homepage=_HOMEPAGE,
             instructions=(
                 f"Register at {_RRC_PORTAL} (Task 4: MP-DocVQA), download the "
-                "Images archive, and extract it here so that each page's "
-                ".jpg file is directly inside."
+                "Images archive (or run wget on cluster from Task 4 URL), and extract it "
+                "here so that each page's .jpg file is directly inside."
             ),
         )
         return {"imdb": imdb_dir, "images": images_dir}

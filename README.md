@@ -52,9 +52,19 @@ pipeline-v2/
    *(Paste your Hugging Face access token when prompted. Credentials will be stored locally at `~/.cache/huggingface/token`.)*
 
 3. **Activate the virtual environment**:
+5. **MP-DocVQA Manual Dataset Setup (Cluster Setup)**:
+   While metadata/IMDBs (`mpdocvqa_imdbs.zip`) can be downloaded automatically, the MP-DocVQA page images (21.2 GB `images.tar.gz`) must be downloaded manually or directly fetched on the cluster into `<data_dir>/mpdocvqa/images`.
+
+   To download directly on your cluster into your data directory (e.g., `/netscratch/$USER/data`):
    ```bash
-   source .venv/bin/activate
-   # or run commands directly via: uv run python usage/...
+   cd /netscratch/akhtar/data/mpdocvqa
+
+   # Download images archive directly on cluster (supports resuming):
+   wget --no-check-certificate -c https://datasets.cvc.uab.es/rrc/DocVQA/Task4/images.tar.gz
+
+   # Extract into images directory so .jpg files are directly inside:
+   mkdir -p images
+   tar -xzf images.tar.gz -C images/
    ```
 
 ---
