@@ -126,6 +126,12 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--data-dir",
+        type=str,
+        default=None,
+        help="Path to the dataset root directory.",
+    )
+    parser.add_argument(
         "--no-ocr",
         action="store_true",
         help="Disable OCR on the Docling API server.",
@@ -136,7 +142,12 @@ def main() -> None:
     dataset = cast(
         Dataset[MultiPageDocumentInstance, DatasetConfig],
         DatasetBuilder()
-        .load(args.name, split=split, max_samples=args.max_samples)
+        .load(
+            args.name,
+            data_dir=args.data_dir,
+            split=split,
+            max_samples=args.max_samples,
+        )
         .build(),
     )
     api_options = DoclingApiOptions(ocr=not args.no_ocr)
