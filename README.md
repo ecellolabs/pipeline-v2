@@ -120,6 +120,36 @@ python usage/01_preprocess.py mmlongbench_doc --num-workers 4
 
 Already-parsed pages are skipped on re-run, so the script can be safely re-invoked to resume an interrupted run.
 
+### Step 3 — `usage/03_evaluation.py`
+
+Runs baseline Qwen Vision-Language model evaluation over SlideVQA samples via an external OpenAI-compatible vLLM API service, computing standard DocVQA metrics (**ANLS** with threshold 0.5, token-level **F1**, and **Exact Match**).
+
+> [!IMPORTANT]
+> Like Docling, the Qwen vLLM service address (e.g. `http://serv-3334:10001/v1`) is dynamic across cluster job allocations.
+> You must pass the active server URL with `--api-url` or set `QWEN_API_URL` / `VLM_BASE_URL` in the environment.
+
+```bash
+# Pass the cluster endpoint directly for a sample run (10 samples):
+python usage/03_evaluation.py slidevqa --api-url http://serv-3334:10001/v1 --max-samples 10 --model-id Qwen/Qwen2.5-VL-7B-Instruct
+
+# Or export the endpoint in your environment:
+export QWEN_API_URL="http://serv-3334:10001/v1"
+python usage/03_evaluation.py slidevqa --max-samples 10
+
+# Dry-run with mock inference to verify pipeline without a live server:
+python usage/03_evaluation.py slidevqa --max-samples 5 --mock
+```
+
+- `--api-url` — OpenAI-compatible vLLM API URL (e.g. `http://serv-3334:10001/v1`). Defaults to `$QWEN_API_URL` or `$VLM_BASE_URL`.
+- `--model-id` — Model name served by the endpoint (e.g. `Qwen/Qwen2.5-VL-7B-Instruct` or `Qwen/Qwen3-VL-8B-Instruct`). Defaults to `$QWEN_MODEL_ID` or `$VLM_MODEL`.
+- `--split {train,validation,test}` — split to evaluate on (default: `validation`).
+- `--max-samples N` — restrict evaluation to `N` decks for fast pilot runs.
+- `--max-tokens N` — maximum tokens to generate per answer (default: `128`).
+- `--temperature` — sampling temperature (default: `0.0`).
+- `--timeout` — per-request HTTP timeout in seconds (default: `120.0`).
+- `--output-file` — destination path to write summary metrics and per-question predictions JSON report.
+- `--mock` — enable mock inference for testing and CI validation without network calls.
+
 ### Pipeline Flow & Next Steps
 
 The end-to-end pipeline follows this decoupled stage flow:
