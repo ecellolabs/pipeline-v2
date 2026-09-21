@@ -6,18 +6,21 @@ from __future__ import annotations
 import argparse
 import json
 import multiprocessing as mp
+import os
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import cast
 
 from atria_core.datasets import Dataset, DatasetBuilder, DatasetConfig
 from atria_core.logger import get_logger
 from atria_core.types import DatasetSplitType, MultiPageDocumentInstance
-from docling.datamodel.pipeline_options import PdfPipelineOptions
 
 from pipeline_v2.datasets import *
-from pipeline_v2.parsers.docling import DoclingTransform
+from pipeline_v2.parsers.docling import (
+    DoclingApiOptions,
+    DoclingTransform,
+)
 
 logger = get_logger(__name__)
 
@@ -26,9 +29,9 @@ _worker_transform: DoclingTransform | None = None
 _worker_out_dir: Path | None = None
 
 
-def _init_worker(pipeline_options: PdfPipelineOptions, out_dir: Path) -> None:
+def _init_worker(api_url: str, options: DoclingApiOptions, out_dir: Path) -> None:
     global _worker_transform, _worker_out_dir
-    _worker_transform = DoclingTransform(pipeline_options=pipeline_options)
+    _worker_transform = DoclingTransform(api_url=api_url, options=options)
     _worker_out_dir = out_dir
 
 
@@ -58,13 +61,14 @@ def _process_sample_worker(sample: MultiPageDocumentInstance) -> None:
 
 @dataclass
 class Preprocessor:
-    """Parses every page of every sample in a dataset split, writing each
-    page's docling output to `data_dir/docling/{sample.key}/{page.key}.json`.
+    """Parses every page of every sample in a dataset split via the Docling API,
+    writing each page's docling output to `data_dir/docling/{sample.key}/{page.key}.json`.
     Skips pages whose output already exists, so a re-run resumes rather than
     reprocessing."""
 
     out_dir: Path
-    pipeline_options: PdfPipelineOptions
+    api_url: str
+    options: DoclingApiOptions = field(default_factory=DoclingApiOptions)
     num_workers: int = 1
 
     def _process_sample(
@@ -73,26 +77,27 @@ class Preprocessor:
         transform: DoclingTransform | None = None,
     ) -> None:
         if transform is None:
-            transform = DoclingTransform(pipeline_options=self.pipeline_options)
+            transform = DoclingTransform(api_url=self.api_url, options=self.options)
         _process_sample(sample, transform, self.out_dir)
 
     def run(self, split_iterator: Iterable[MultiPageDocumentInstance]) -> None:
         self.out_dir.mkdir(parents=True, exist_ok=True)
 
         if self.num_workers <= 1:
-            transform = DoclingTransform(pipeline_options=self.pipeline_options)
-            for sample in split_iterator:
-                _process_sample(sample, transform, self.out_dir)
+            with DoclingTransform(
+                api_url=self.api_url, options=self.options
+            ) as transform:
+                for sample in split_iterator:
+                    _process_sample(sample, transform, self.out_dir)
             return
 
         with mp.Pool(
             self.num_workers,
             initializer=_init_worker,
-            initargs=(self.pipeline_options, self.out_dir),
+            initargs=(self.api_url, self.options, self.out_dir),
         ) as pool:
             for _ in pool.imap_unordered(_process_sample_worker, split_iterator):
                 pass
-
 
 
 def main() -> None:
@@ -108,6 +113,23 @@ def main() -> None:
         help="Maximum number of samples/decks to preprocess.",
     )
     parser.add_argument("--num-workers", type=int, default=1)
+    env_api_url = os.getenv("DOCLING_API_URL")
+    parser.add_argument(
+        "--api-url",
+        type=str,
+        default=env_api_url,
+        required=env_api_url is None,
+        help=(
+            "Docling API service URL (e.g. http://serv-3334:10001). "
+            "Required unless DOCLING_API_URL environment variable is set. "
+            "Note: DFKI cluster node hostname and port change dynamically on each allocation."
+        ),
+    )
+    parser.add_argument(
+        "--no-ocr",
+        action="store_true",
+        help="Disable OCR on the Docling API server.",
+    )
     args = parser.parse_args()
     split = DatasetSplitType(args.split) if args.split is not None else None
 
@@ -117,11 +139,12 @@ def main() -> None:
         .load(args.name, split=split, max_samples=args.max_samples)
         .build(),
     )
-    pipeline_options = PdfPipelineOptions(do_ocr=True)
-    for split, split_iterator in dataset.split_iterators.items():
+    api_options = DoclingApiOptions(ocr=not args.no_ocr)
+    for split_key, split_iterator in dataset.split_iterators.items():
         preprocessor = Preprocessor(
-            out_dir=dataset.data_dir / "docling" / split.value,
-            pipeline_options=pipeline_options,
+            out_dir=dataset.data_dir / "docling" / split_key.value,
+            api_url=args.api_url,
+            options=api_options,
             num_workers=args.num_workers,
         )
         preprocessor.run(split_iterator)

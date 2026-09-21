@@ -93,19 +93,30 @@ Pass `--enable-caching` (on by default; use `--no-enable-caching` to disable) to
 
 ### Step 2 — `usage/01_preprocess.py`
 
-Runs `DoclingTransform` (layout analysis + OCR via docling) over every page of every sample in a dataset split, writing each page's parsed `DoclingDocument` to disk.
+Runs `DoclingTransform` (layout analysis + OCR via the external Docling API service) over every page of every sample in a dataset split, writing each page's parsed `DoclingDocument` to disk.
+
+> [!IMPORTANT]
+> The Docling API server address (e.g. `http://serv-3334:10001`) is **not constant**; the DFKI cluster node hostname and port change dynamically with each job allocation.
+> You must pass the active API URL using the `--api-url` parameter, or set the `DOCLING_API_URL` environment variable.
 
 ```bash
+# Pass the cluster endpoint directly:
+python usage/01_preprocess.py mmlongbench_doc --api-url http://serv-3334:10001 --num-workers 4
+python usage/01_preprocess.py mpdocvqa --api-url http://serv-3334:10001 --num-workers 4
+python usage/01_preprocess.py slidevqa --api-url http://serv-3334:10001 --num-workers 4
+
+# Or set it once in your environment:
+export DOCLING_API_URL="http://serv-3334:10001"
 python usage/01_preprocess.py mmlongbench_doc --num-workers 4
-python usage/01_preprocess.py mpdocvqa --num-workers 4
-python usage/01_preprocess.py slidevqa --num-workers 4
 ```
 
 - First argument — the registered dataset name (`mmlongbench_doc`, `mpdocvqa`, or `slidevqa`).
+- `--api-url` — Docling API service URL (e.g. `http://serv-3334:10001`). Required unless `DOCLING_API_URL` is set in the environment.
 - Outputs are written inside the dataset's own `data_dir` (wherever that dataset was downloaded/cached to) at `<data_dir>/docling/<split>/<sample.key>/<page.key>.json` — no separate output path needed.
 - `--split {train,validation,test}` — build and process only that split, instead of all of them.
 - `--max-samples N` — preprocess only up to `N` samples/decks.
-- `--num-workers` — number of worker processes; each builds its own `DoclingTransform` (docling's converter isn't cheaply shareable across processes). Defaults to `1` (no multiprocessing).
+- `--num-workers` — number of concurrent worker processes making API requests. Defaults to `1`.
+- `--no-ocr` — disable OCR in API requests (enabled by default).
 
 Already-parsed pages are skipped on re-run, so the script can be safely re-invoked to resume an interrupted run.
 
