@@ -110,33 +110,9 @@ class SplitIterator(Sequence[_Sample]):
 
         split_name = _HF_SPLIT_NAMES[split]
         logger.info(f"Loading SlideVQA {split.value} split from Hugging Face")
-        data_files: dict[str, str | list[str]] = {split_name: f"data/{split_name}-*"}
-        if max_samples is not None:
-            try:
-                from huggingface_hub import HfApi
-
-                api = HfApi()
-                all_files = sorted(
-                    [
-                        f
-                        for f in api.list_repo_files(_HF_REPO, repo_type="dataset")
-                        if f.startswith(f"data/{split_name}-")
-                        and f.endswith(".parquet")
-                    ]
-                )
-                if all_files:
-                    needed_shards = min(
-                        len(all_files), max(1, (max_samples + 24) // 25)
-                    )
-                    data_files = {split_name: all_files[:needed_shards]}
-            except (OSError, RuntimeError) as e:
-                logger.warning(
-                    f"Failed to query repo file list for SlideVQA: {e}. Falling back to all {split_name} shards."
-                )
 
         self._rows = load_dataset(
             _HF_REPO,
-            data_files=data_files,
             split=split_name,
             cache_dir=data_dir,
             verification_mode="no_checks",
