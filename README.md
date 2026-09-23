@@ -21,7 +21,8 @@ pipeline-v2/
 │   └── pipeline_v2/            # Core package: reusable loaders, parsers, and transforms
 │       ├── __init__.py
 │       ├── datasets/           # Dataset loaders and adapters (registered with atria_core)
-│       │   ├── __init__.py     # Re-exports MMLongBenchDoc, MPDocVQA, SlideVQA
+│       │   ├── __init__.py     # Re-exports CiteVQA, MMLongBenchDoc, MPDocVQA, SlideVQA
+│       │   ├── citevqa.py
 │       │   ├── mmlongbench_doc.py
 │       │   ├── mpdocvqa.py
 │       │   ├── slidevqa.py
@@ -71,13 +72,14 @@ pipeline-v2/
 
 ## Usage scripts
 
-`pipeline_v2.datasets` registers three custom datasets: `mmlongbench_doc`, `mpdocvqa`, and `slidevqa`. Both usage scripts work with any of the three — just swap the dataset name.
+`pipeline_v2.datasets` registers four custom datasets: `citevqa`, `mmlongbench_doc`, `mpdocvqa`, and `slidevqa`. Both usage scripts work with any of the four — just swap the dataset name.
 
 ### Step 1 — `usage/00_prepare_dataset.py`
 
 Loads a registered dataset, optionally caches it, and visualizes the first sample of each split. Run this first as a sanity check of what a dataset actually contains before running anything heavier on it.
 
 ```bash
+python usage/00_prepare_dataset.py citevqa
 python usage/00_prepare_dataset.py mmlongbench_doc
 python usage/00_prepare_dataset.py mpdocvqa
 python usage/00_prepare_dataset.py slidevqa
@@ -101,16 +103,17 @@ Runs `DoclingTransform` (layout analysis + OCR via the external Docling API serv
 
 ```bash
 # Pass the cluster endpoint directly:
+python usage/01_preprocess.py citevqa --api-url http://serv-3334:10001 --num-workers 4
 python usage/01_preprocess.py mmlongbench_doc --api-url http://serv-3334:10001 --num-workers 4
 python usage/01_preprocess.py mpdocvqa --api-url http://serv-3334:10001 --num-workers 4
 python usage/01_preprocess.py slidevqa --api-url http://serv-3334:10001 --num-workers 4
 
 # Or set it once in your environment:
 export DOCLING_API_URL="http://serv-3334:10001"
-python usage/01_preprocess.py mmlongbench_doc --num-workers 4
+python usage/01_preprocess.py citevqa --num-workers 4
 ```
 
-- First argument — the registered dataset name (`mmlongbench_doc`, `mpdocvqa`, or `slidevqa`).
+- First argument — the registered dataset name (`citevqa`, `mmlongbench_doc`, `mpdocvqa`, or `slidevqa`).
 - `--api-url` — Docling API service URL (e.g. `http://serv-3334:10001`). Required unless `DOCLING_API_URL` is set in the environment.
 - Outputs are written inside the dataset's own `data_dir` (wherever that dataset was downloaded/cached to) at `<data_dir>/docling/<split>/<sample.key>/<page.key>.json` — no separate output path needed.
 - `--split {train,validation,test}` — build and process only that split, instead of all of them.

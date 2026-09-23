@@ -195,14 +195,37 @@ class SplitIterator(Sequence[_Sample]):
                 data_dir=self._pdf_dir.parent,
                 download_dir=self._pdf_dir.parent / ".download_cache",
             )
-            try:
-                manager.download_and_extract(urls_to_download, extract=False)
-            except Exception as e:  # noqa: BLE001
-                logger.warning(
-                    f"Notice: Some PDFs could not be downloaded via direct external URLs: {e}. "
-                    "To obtain the complete PDF archive, use ModelScope: "
-                    f"'modelscope download --dataset risemds/CiteVQA_PDF --local_dir {self._pdf_dir}'"
-                )
+            for spec in urls_to_download:
+                try:
+                    manager.download_and_extract([spec], extract=False)
+                except Exception as e:  # noqa: BLE001
+                    # Fallback to direct request with User-Agent (many external hosts block requests without browser UA)
+                    rel_path = spec.rel_output_file_path or ""
+                    dest_path = self._pdf_dir / Path(rel_path).name
+                    try:
+                        import requests
+
+                        resp = requests.get(
+                            spec.url,
+                            headers={"User-Agent": "Mozilla/5.0"},
+                            timeout=60,
+                            stream=True,
+                        )
+                        resp.raise_for_status()
+                        dest_path.parent.mkdir(parents=True, exist_ok=True)
+                        with open(dest_path, "wb") as f:
+                            for chunk in resp.iter_content(chunk_size=65536):
+                                if chunk:
+                                    f.write(chunk)
+                        logger.info(
+                            f"Downloaded {dest_path.name} via direct request fallback"
+                        )
+                    except Exception as err:  # noqa: BLE001
+                        logger.warning(
+                            f"Notice: PDF for {spec.rel_output_file_path} could not be downloaded: {err} (Atria error: {e}). "
+                            "To obtain the complete PDF archive, use ModelScope: "
+                            f"'modelscope download --dataset risemds/CiteVQA_PDF --local_dir {self._pdf_dir}'"
+                        )
 
     @overload
     def __getitem__(self, index: int) -> _Sample: ...

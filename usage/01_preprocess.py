@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import cast
 
-from atria_core.datasets import Dataset, DatasetBuilder, DatasetConfig
+from atria_core.datasets import Dataset, DatasetBuilder, DatasetConfig, datasets
 from atria_core.logger import get_logger
 from atria_core.types import DatasetSplitType, MultiPageDocumentInstance
 
@@ -102,7 +102,7 @@ class Preprocessor:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("name")
+    parser.add_argument("name", choices=sorted(datasets.list()))
     parser.add_argument(
         "--split", choices=[s.value for s in DatasetSplitType], default=None
     )

@@ -52,7 +52,7 @@ def prepare_dataset(
     **dataset_kwargs: Any,
 ) -> None:
     """Load and cache a dataset, then inspect the first sample of each split."""
-    dataset = DatasetBuilder().load(
+    builder = DatasetBuilder().load(
         name,
         data_dir=data_dir,
         max_samples=max_samples,
@@ -60,25 +60,25 @@ def prepare_dataset(
         **dataset_kwargs,
     )
     if enable_caching:
-        dataset = dataset.cache(storage_type, split=split)
-    dataset = dataset.build()
+        builder = builder.cache(storage_type, split=split)
+    dataset = builder.build()
 
     logger.info("Cached dataset:\n%s", dataset)
 
-    for split, split_iterator in dataset.split_iterators.items():
+    for split_key, split_iterator in dataset.split_iterators.items():
         samples: Any = split_iterator
-        logger.info(f"[{split.value}] {len(samples)} samples")
+        logger.info(f"[{split_key.value}] {len(samples)} samples")
         if not visualize_samples or len(samples) == 0:
             continue
         sample = samples[0].load()
-        sample_dir = Path(output_dir) / name / split.value
+        sample_dir = Path(output_dir) / name / split_key.value
         sample_dir.mkdir(parents=True, exist_ok=True)
         visualize(sample, output_dir=str(sample_dir))
         logger.info(
-            f"[{split.value}] first sample: sample_id={sample.sample_id!r}"
+            f"[{split_key.value}] first sample: sample_id={sample.sample_id!r}"
             f" num_pages={len(sample.pages)}"
         )
-        logger.info(f"First sample of split `{split}`:\n {sample}")
+        logger.info(f"First sample of split `{split_key}`:\n {sample}")
 
     if benchmark:
         benchmark_dataset(dataset)
@@ -107,10 +107,16 @@ def main() -> None:
         default=FileStorageType.MSGPACK.value,
     )
     parser.add_argument("--data-dir", default=None)
+    parser.add_argument(
+        "--output-dir",
+        default="./dataset_visualizations",
+        help="Path where visualizations are written.",
+    )
     args = parser.parse_args()
     split = DatasetSplitType(args.split) if args.split is not None else None
     prepare_dataset(
         args.name,
+        output_dir=args.output_dir,
         split=split,
         enable_caching=args.enable_caching,
         storage_type=FileStorageType(args.storage_type),
