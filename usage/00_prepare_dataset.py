@@ -118,5 +118,6 @@ def main() -> None:
         max_samples=args.max_samples,
     )
 
+
 if __name__ == "__main__":
     main()

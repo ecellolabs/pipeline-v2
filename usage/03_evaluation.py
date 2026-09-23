@@ -127,11 +127,17 @@ def main() -> None:
         if not ok:
             print("\n" + "!" * 80, file=sys.stderr)
             print(f"[PREFLIGHT FAILED] {conn_msg}", file=sys.stderr)
-            print("Please specify the active vLLM vision endpoint using:", file=sys.stderr)
+            print(
+                "Please specify the active vLLM vision endpoint using:", file=sys.stderr
+            )
             print("  --api-url http://<active-node>:<port>/v1", file=sys.stderr)
             print("Or export one of:", file=sys.stderr)
-            print("  export QWEN_API_URL=http://<active-node>:<port>/v1", file=sys.stderr)
-            print("  export VLM_BASE_URL=http://<active-node>:<port>/v1", file=sys.stderr)
+            print(
+                "  export QWEN_API_URL=http://<active-node>:<port>/v1", file=sys.stderr
+            )
+            print(
+                "  export VLM_BASE_URL=http://<active-node>:<port>/v1", file=sys.stderr
+            )
             print("!" * 80 + "\n", file=sys.stderr)
             sys.exit(1)
         logger.info(f"[PREFLIGHT OK] {conn_msg}")
