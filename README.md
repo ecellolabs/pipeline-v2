@@ -27,13 +27,22 @@ pipeline-v2/
 │       │   ├── mpdocvqa.py
 │       │   ├── slidevqa.py
 │       │   └── utils.py        # Manual download guards & exceptions
+│       ├── evaluators/         # Dataset-specific evaluation suites (CiteVQA, SlideVQA, MMLongBenchDoc)
+│       │   ├── __init__.py
+│       │   ├── base.py         # Abstract BaseEvaluator class
+│       │   ├── citevqa.py      # CiteVQA SAA, ANLS, F1, EM, and page citation evaluator
+│       │   ├── mmlongbench_doc.py # MMLongBenchDoc evaluator
+│       │   ├── slidevqa.py     # SlideVQA evaluator
+│       │   └── registry.py     # Evaluator lookup and registry
+│       ├── models/             # Vision-Language API model clients (Qwen)
+│       │   └── qwen.py
 │       ├── parsers/            # Document parsing engines
 │       │   └── docling.py      # Docling layout analysis & OCR transform
 │       └── processors/         # Downstream transforms & model integrations (e.g. LLMs)
 └── usage/                      # Sequential, stateless stage CLI drivers
     ├── 00_prepare_dataset.py   # Stage 0: Dataset ingestion, caching, & visualization
     ├── 01_preprocess.py        # Stage 1: Batch Docling OCR & layout parsing
-    └── 02_...                  # Stage 2+: Downstream components (indexing, LLM extraction)
+    └── 03_evaluation.py        # Stage 3: Dataset-routed Qwen Vision-Language model evaluation
 ```
 
 ---
@@ -72,7 +81,7 @@ pipeline-v2/
 
 ## Usage scripts
 
-`pipeline_v2.datasets` registers four custom datasets: `citevqa`, `mmlongbench_doc`, `mpdocvqa`, and `slidevqa`. Both usage scripts work with any of the four — just swap the dataset name.
+`pipeline_v2.datasets` registers four custom datasets: `citevqa`, `mmlongbench_doc`, `mpdocvqa`, and `slidevqa`. Usage scripts work with any registered dataset.
 
 ### Step 1 — `usage/00_prepare_dataset.py`
 
@@ -98,7 +107,7 @@ Pass `--enable-caching` (on by default; use `--no-enable-caching` to disable) to
 Runs `DoclingTransform` (layout analysis + OCR via the external Docling API service) over every page of every sample in a dataset split, writing each page's parsed `DoclingDocument` to disk.
 
 > [!IMPORTANT]
-> The Docling API server address (e.g. `http://serv-3334:10001`) is **not constant**; the DFKI cluster node hostname and port change dynamically with each job allocation.
+> The Docling API server address (e.g. `http://serv-3334:10001`) is **not constant**; the cluster node hostname and port change dynamically with each job allocation.
 > You must pass the active API URL using the `--api-url` parameter, or set the `DOCLING_API_URL` environment variable.
 
 ```bash
@@ -125,28 +134,38 @@ Already-parsed pages are skipped on re-run, so the script can be safely re-invok
 
 ### Step 3 — `usage/03_evaluation.py`
 
-Runs baseline Qwen Vision-Language model evaluation over SlideVQA samples via an external OpenAI-compatible vLLM API service, computing standard DocVQA metrics (**ANLS** with threshold 0.5, token-level **F1**, and **Exact Match**).
+Runs baseline Qwen Vision-Language model evaluation across document datasets (`citevqa`, `slidevqa`, `mmlongbench_doc`) via an OpenAI-compatible API endpoint (e.g. vLLM or Cloudflare Workers AI / `ecello.net`), computing standard DocVQA metrics (**ANLS** with threshold 0.5, token-level **F1**, and **Exact Match**) as well as benchmark-specific attribution metrics such as **Strict Attributed Accuracy (SAA)** and **Page Citation Accuracy** for `citevqa`.
 
 > [!IMPORTANT]
-> Like Docling, the Qwen vLLM service address (e.g. `http://serv-3334:10001/v1`) is dynamic across cluster job allocations.
-> You must pass the active server URL with `--api-url` or set `QWEN_API_URL` / `VLM_BASE_URL` in the environment.
+> Pass the active server URL with `--api-url` or set `QWEN_API_URL` / `VLM_BASE_URL` in the environment.
+> For authenticated hosted endpoints, pass the authorization key using `--api-key` or set `QWEN_API_KEY` / `OPENAI_API_KEY`.
 
 ```bash
-# Pass the cluster endpoint directly for a sample run (10 samples):
-python usage/03_evaluation.py slidevqa --api-url http://serv-3334:10001/v1 --max-samples 10 --model-id Qwen/Qwen2.5-VL-7B-Instruct
+# Evaluate CiteVQA on a hosted endpoint (e.g., 10 samples pilot run):
+python usage/03_evaluation.py citevqa \
+  --api-url https://model.ecello.net/v1 \
+  --api-key <YOUR_API_KEY> \
+  --model-id @cf/qwen/qwen3.8-27b \
+  --max-samples 10
 
-# Or export the endpoint in your environment:
-export QWEN_API_URL="http://serv-3334:10001/v1"
-python usage/03_evaluation.py slidevqa --max-samples 10
+# Evaluate SlideVQA on a vLLM server:
+python usage/03_evaluation.py slidevqa \
+  --api-url http://serv-3334:10001/v1 \
+  --model-id Qwen/Qwen2.5-VL-7B-Instruct \
+  --max-samples 10
 
-# Dry-run with mock inference to verify pipeline without a live server:
-python usage/03_evaluation.py slidevqa --max-samples 5 --mock
+# Dry-run with mock inference to verify pipeline without network calls:
+python usage/03_evaluation.py citevqa --max-samples 5 --mock
 ```
 
-- `--api-url` — OpenAI-compatible vLLM API URL (e.g. `http://serv-3334:10001/v1`). Defaults to `$QWEN_API_URL` or `$VLM_BASE_URL`.
-- `--model-id` — Model name served by the endpoint (e.g. `Qwen/Qwen2.5-VL-7B-Instruct` or `Qwen/Qwen3-VL-8B-Instruct`). Defaults to `$QWEN_MODEL_ID` or `$VLM_MODEL`.
+- `name` — registered dataset name (`citevqa`, `slidevqa`, `mmlongbench_doc`). Defaults to `citevqa`.
+- `--api-url` — OpenAI-compatible API server URL (e.g. `https://model.ecello.net/v1`). Defaults to `$QWEN_API_URL` or `$VLM_BASE_URL`.
+- `--model-id` — Model name served by the endpoint (e.g. `@cf/qwen/qwen3.8-27b` or `Qwen/Qwen2.5-VL-7B-Instruct`). Defaults to `$QWEN_MODEL_ID` or `$VLM_MODEL`.
+- `--api-key` — API authorization token if required by proxy/endpoint.
+- `--enable-thinking` — Enable Qwen reasoning/thinking tokens (default: disabled).
+- `--docling-url` — Optional Docling API URL for layout-enhanced text context extraction.
 - `--split {train,validation,test}` — split to evaluate on (default: `validation`).
-- `--max-samples N` — restrict evaluation to `N` decks for fast pilot runs.
+- `--max-samples N` — restrict evaluation to `N` samples/decks for fast pilot runs.
 - `--max-tokens N` — maximum tokens to generate per answer (default: `128`).
 - `--temperature` — sampling temperature (default: `0.0`).
 - `--timeout` — per-request HTTP timeout in seconds (default: `120.0`).

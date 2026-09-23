@@ -85,6 +85,7 @@ class QwenVLConfig(BaseModel):
     temperature: float = 0.0
     max_tokens: int = 128
     timeout: float = 120.0
+    enable_thinking: bool = False
     system_prompt: str | None = None
     mock: bool = False
 
@@ -131,8 +132,13 @@ class QwenVLModel:
             resp = self._client.get(self._models_url, headers=self.headers, timeout=5.0)
             if resp.is_success:
                 data = resp.json()
-                models = [m.get("id") for m in data.get("data", [])]
+                models = [m.get("id") for m in data.get("data", [])] if isinstance(data, dict) else []
                 return True, f"Connected to {self.config.api_url} (models: {models})"
+            # Fallback check on health or chat completions URL
+            health_url = f"{self.config.api_url.rstrip('/')}/health"
+            health_resp = self._client.get(health_url, timeout=5.0)
+            if health_resp.is_success:
+                return True, f"Connected to {self.config.api_url} (health check OK)"
             return (
                 False,
                 f"Endpoint {self._models_url} returned HTTP {resp.status_code}: {resp.text}",
@@ -162,13 +168,13 @@ class QwenVLModel:
 
         prompt_text = (
             f"Question: {question}\n"
-            "Using the visual information from the slide deck above, provide a direct, "
+            "Using the visual information from the document/slide pages above, provide a direct, "
             "factual, and concise answer to the question. Do not elaborate."
         )
         content.append({"type": "text", "text": prompt_text})
 
         system_text = self.config.system_prompt or (
-            "You are an expert visual document reader analyzing presentation slides. "
+            "You are an expert visual document reader analyzing document pages. "
             "Carefully inspect visual details, chart legends, axes, table cells, and diagrams. "
             "Provide a concise, direct, and factual answer to the question without unnecessary explanation."
         )
@@ -181,6 +187,7 @@ class QwenVLModel:
                 {"role": "system", "content": system_text},
                 {"role": "user", "content": content},
             ],
+            "chat_template_kwargs": {"enable_thinking": self.config.enable_thinking},
         }
 
         try:

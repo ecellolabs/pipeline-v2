@@ -1,8 +1,9 @@
-"""CLI entrypoint to run baseline Qwen Vision-Language model evaluation on SlideVQA via API."""
+"""CLI entrypoint to run Vision-Language model baseline evaluation across datasets via API."""
 
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 from typing import Any, cast
@@ -13,32 +14,34 @@ from atria_core.types import DatasetSplitType, MultiPageDocumentInstance
 
 from pipeline_v2.datasets import *
 from pipeline_v2.evaluation import evaluate_dataset
+from pipeline_v2.evaluators import get_evaluator
 from pipeline_v2.models.qwen import (
     DEFAULT_QWEN_API_URL,
     DEFAULT_QWEN_MODEL_ID,
     QwenVLConfig,
     QwenVLModel,
 )
+from pipeline_v2.parsers.docling import DoclingTransform
 
 logger = get_logger(__name__)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Run Qwen Vision-Language baseline evaluation on SlideVQA via API."
+        description="Run Qwen Vision-Language baseline evaluation on document datasets via API."
     )
     parser.add_argument(
         "name",
         nargs="?",
-        default="slidevqa",
-        help="Registered dataset name (default: 'slidevqa').",
+        default="citevqa",
+        help="Registered dataset name (default: 'citevqa'). Options: citevqa, slidevqa, mmlongbench_doc.",
     )
     parser.add_argument(
         "--api-url",
         type=str,
         default=None,
         help=(
-            "OpenAI-compatible vLLM server URL (e.g. 'http://serv-3334:10001/v1'). "
+            "OpenAI-compatible vLLM / Workers AI server URL (e.g. 'https://model.ecello.net/v1'). "
             "Defaults to $QWEN_API_URL or $VLM_BASE_URL or "
             f"'{DEFAULT_QWEN_API_URL}'."
         ),
@@ -48,7 +51,7 @@ def main() -> None:
         type=str,
         default=None,
         help=(
-            "Model repo ID or served name (e.g. 'Qwen/Qwen2.5-VL-7B-Instruct' or 'Qwen/Qwen3-VL-8B-Instruct'). "
+            "Model repo ID or served name (e.g. '@cf/qwen/qwen3.8-27b' or 'Qwen/Qwen2.5-VL-7B-Instruct'). "
             f"Defaults to $QWEN_MODEL_ID or $VLM_MODEL or '{DEFAULT_QWEN_MODEL_ID}'."
         ),
     )
@@ -56,7 +59,18 @@ def main() -> None:
         "--api-key",
         type=str,
         default=None,
-        help="API authorization key if required by proxy/server (default: 'dummy').",
+        help="API authorization key if required by endpoint (e.g. Bearer token).",
+    )
+    parser.add_argument(
+        "--docling-url",
+        type=str,
+        default=os.getenv("DOCLING_API_URL"),
+        help="Docling API service URL (e.g. 'http://serv-3334:10001').",
+    )
+    parser.add_argument(
+        "--enable-thinking",
+        action="store_true",
+        help="Enable Qwen thinking/reasoning tokens (default: False).",
     )
     parser.add_argument(
         "--split",
@@ -68,7 +82,7 @@ def main() -> None:
         "--max-samples",
         type=int,
         default=None,
-        help="Maximum number of decks to evaluate (ideal for fast pilot runs).",
+        help="Maximum number of samples/decks to evaluate (ideal for fast pilot runs).",
     )
     parser.add_argument(
         "--max-tokens",
@@ -91,7 +105,7 @@ def main() -> None:
     parser.add_argument(
         "--output-file",
         type=Path,
-        default=Path("./evaluation_results/slidevqa_qwen_eval.json"),
+        default=None,
         help="Path to save evaluation summary and predictions JSON.",
     )
     parser.add_argument(
@@ -101,11 +115,15 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    if args.output_file is None:
+        args.output_file = Path(f"./evaluation_results/{args.name}_qwen_eval.json")
+
     # Build model configuration
     config_kwargs: dict[str, Any] = {
         "max_tokens": args.max_tokens,
         "temperature": args.temperature,
         "timeout": args.timeout,
+        "enable_thinking": args.enable_thinking,
         "mock": args.mock,
     }
     if args.api_url:
@@ -127,20 +145,25 @@ def main() -> None:
         if not ok:
             print("\n" + "!" * 80, file=sys.stderr)
             print(f"[PREFLIGHT FAILED] {conn_msg}", file=sys.stderr)
+            print("Please check your API key and base URL using:", file=sys.stderr)
             print(
-                "Please specify the active vLLM vision endpoint using:", file=sys.stderr
-            )
-            print("  --api-url http://<active-node>:<port>/v1", file=sys.stderr)
-            print("Or export one of:", file=sys.stderr)
-            print(
-                "  export QWEN_API_URL=http://<active-node>:<port>/v1", file=sys.stderr
-            )
-            print(
-                "  export VLM_BASE_URL=http://<active-node>:<port>/v1", file=sys.stderr
+                "  --api-url https://model.ecello.net/v1 --api-key <YOUR_API_KEY>",
+                file=sys.stderr,
             )
             print("!" * 80 + "\n", file=sys.stderr)
             sys.exit(1)
         logger.info(f"[PREFLIGHT OK] {conn_msg}")
+
+    # Optional Docling transform initialization
+    docling_transform: DoclingTransform | None = None
+    if args.docling_url:
+        try:
+            docling_transform = DoclingTransform(api_url=args.docling_url)
+            logger.info(f"Initialized DoclingTransform at {args.docling_url}")
+        except Exception as err:
+            logger.warning(
+                f"Could not initialize DoclingTransform at {args.docling_url}: {err}. Falling back to standard visual QA."
+            )
 
     split = DatasetSplitType(args.split) if args.split is not None else None
     logger.info(
@@ -153,8 +176,14 @@ def main() -> None:
         .build(),
     )
 
-    evaluate_dataset(dataset=dataset, model=model, output_file=args.output_file)
+    evaluate_dataset(
+        dataset=dataset,
+        model=model,
+        output_file=args.output_file,
+        docling_transform=docling_transform,
+    )
 
 
 if __name__ == "__main__":
     main()
+

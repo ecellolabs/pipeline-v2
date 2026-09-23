@@ -281,6 +281,20 @@ class InputTransform:
                 f"'modelscope download --dataset risemds/CiteVQA_PDF --local_dir {sample.pdf_path.parent}'"
             )
 
+        # Validate PDF magic header
+        with open(sample.pdf_path, "rb") as f:
+            header = f.read(5)
+            if not header.startswith(b"%PDF"):
+                logger.warning(
+                    f"File '{sample.pdf_path.name}' is not a valid PDF document (magic header: {header!r}). "
+                    "External URL returned an HTML page instead of PDF binary."
+                )
+                return MultiPageDocumentInstance(
+                    sample_id=sample.doc_id,
+                    pages=[],
+                    metadata={"doc_id": sample.doc_id, "invalid_pdf": True},
+                )
+
         document = MultiPageDocumentInstance.from_pdf(
             sample.pdf_path,
             sample_id=sample.doc_id,
