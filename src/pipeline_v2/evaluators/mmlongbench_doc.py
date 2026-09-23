@@ -57,7 +57,9 @@ class MMLongBenchDocEvaluator(BaseEvaluator):
                     AnnotationType.multi_page_question_answering
                 )
                 if qa_annotation is None:
-                    logger.warning(f"No QA annotation found for sample {sample.sample_id}")
+                    logger.warning(
+                        f"No QA annotation found for sample {sample.sample_id}"
+                    )
                     continue
 
                 for qa in qa_annotation.qa_pairs:

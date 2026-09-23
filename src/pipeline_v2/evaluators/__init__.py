@@ -11,8 +11,8 @@ from pipeline_v2.evaluators.slidevqa import SlideVQAEvaluator
 __all__ = [
     "BaseEvaluator",
     "CiteVQAEvaluator",
-    "SlideVQAEvaluator",
     "MMLongBenchDocEvaluator",
+    "SlideVQAEvaluator",
     "get_evaluator",
     "register_evaluator",
 ]

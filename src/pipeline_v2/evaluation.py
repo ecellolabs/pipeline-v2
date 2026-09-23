@@ -2,18 +2,12 @@
 
 from __future__ import annotations
 
-import json
-import time
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from atria_core.datasets import Dataset, DatasetConfig
 from atria_core.logger import get_logger
-from atria_core.types import (
-    AnnotationType,
-    MultiPageDocumentInstance,
-)
+from atria_core.types import MultiPageDocumentInstance
 
 from pipeline_v2.evaluators.registry import get_evaluator
 from pipeline_v2.models.qwen import QwenVLModel
@@ -36,4 +30,3 @@ def evaluate_dataset(
         output_file=output_file,
         docling_transform=docling_transform,
     )
-

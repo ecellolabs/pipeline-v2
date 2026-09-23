@@ -38,14 +38,14 @@ _spec.loader.exec_module(preprocess_mod)
 Preprocessor = preprocess_mod.Preprocessor
 
 
-
-
 def test_citevqa_registration_and_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "citevqa" in datasets.list()
     dataset_cls = datasets.get("citevqa")
     assert dataset_cls is CiteVQA
 
-    monkeypatch.setattr(CiteVQA, "_build_split_iterator", lambda self, split, data_dir: [])
+    monkeypatch.setattr(
+        CiteVQA, "_build_split_iterator", lambda self, split, data_dir: []
+    )
     dataset = CiteVQA(config=CiteVQAConfig(max_samples=5))
     metadata = dataset._metadata()
     assert "CiteVQA" in metadata.description
@@ -96,11 +96,15 @@ def test_input_transform_missing_pdf() -> None:
         pdf_path=Path("/nonexistent/path/missing.pdf"),
         qa_metas=[],
     )
-    with pytest.raises(FileNotFoundError, match="PDF file for sample 'missing.pdf' not found"):
+    with pytest.raises(
+        FileNotFoundError, match="PDF file for sample 'missing.pdf' not found"
+    ):
         transform(sample)
 
 
-def test_input_transform_with_mocked_pdf(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_input_transform_with_mocked_pdf(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     # Create a mock PDF file
     dummy_pdf = tmp_path / "test_doc.pdf"
     dummy_pdf.write_bytes(b"%PDF-1.4 dummy content")
@@ -164,9 +168,7 @@ def test_input_transform_with_mocked_pdf(monkeypatch: pytest.MonkeyPatch, tmp_pa
     assert not doc_instance.pages[0].has_annotation_type(
         AnnotationType.object_detection
     )
-    assert doc_instance.pages[1].has_annotation_type(
-        AnnotationType.object_detection
-    )
+    assert doc_instance.pages[1].has_annotation_type(AnnotationType.object_detection)
 
     det_ann = doc_instance.pages[1].get_annotation_by_type(
         AnnotationType.object_detection
@@ -223,7 +225,9 @@ def test_citevqa_docling_preprocess_run(tmp_path: Path) -> None:
     mock_content.require_content.return_value = img
     mock_page.load.return_value = mock_content
 
-    sample = MultiPageDocumentInstance(sample_id="cite_doc", pages=[mock_page], metadata={})
+    sample = MultiPageDocumentInstance(
+        sample_id="cite_doc", pages=[mock_page], metadata={}
+    )
 
     out_dir = tmp_path / "docling" / "validation"
     preprocessor = Preprocessor(

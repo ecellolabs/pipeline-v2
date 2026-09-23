@@ -25,7 +25,9 @@ def extract_cited_pages(prediction_text: str) -> list[int]:
     """Extracts 0-indexed page numbers cited in model prediction text (e.g. 'Page 1', '[Page 2]')."""
     found_pages: set[int] = set()
     # Match patterns like Page 1, Page: 2, [Page 3], p. 1
-    matches = re.findall(r"(?:page|p\.)\s*:?\s*\[?(\d+)\]?", prediction_text, re.IGNORECASE)
+    matches = re.findall(
+        r"(?:page|p\.)\s*:?\s*\[?(\d+)\]?", prediction_text, re.IGNORECASE
+    )
     for m in matches:
         try:
             page_num = int(m)
@@ -79,7 +81,7 @@ class CiteVQAEvaluator(BaseEvaluator):
 
                 try:
                     images = [page.load().require_content() for page in sample.pages]
-                except Exception as err:
+                except Exception as err:  # noqa: BLE001
                     logger.warning(
                         f"[{split_key.value}] Skipping sample {sample_idx + 1}: could not load pages ({err})"
                     )
@@ -99,7 +101,7 @@ class CiteVQAEvaluator(BaseEvaluator):
                         for page in sample.pages:
                             doc = docling_transform(page)
                             docling_parsed_pages.append(doc.export_to_markdown())
-                    except Exception as err:
+                    except Exception as err:  # noqa: BLE001
                         logger.warning(
                             f"Docling parsing failed for {sample.sample_id}, falling back to visual QA: {err}"
                         )
@@ -108,7 +110,9 @@ class CiteVQAEvaluator(BaseEvaluator):
                     AnnotationType.multi_page_question_answering
                 )
                 if qa_annotation is None:
-                    logger.warning(f"No QA annotation found for sample {sample.sample_id}")
+                    logger.warning(
+                        f"No QA annotation found for sample {sample.sample_id}"
+                    )
                     continue
 
                 for qa in qa_annotation.qa_pairs:
@@ -140,7 +144,9 @@ class CiteVQAEvaluator(BaseEvaluator):
                         page_match = True
                     else:
                         # Ground truth page match (intersection over union or subset match)
-                        page_match = bool(set(predicted_pages).intersection(set(gold_evidence_pages)))
+                        page_match = bool(
+                            set(predicted_pages).intersection(set(gold_evidence_pages))
+                        )
 
                     page_cite_acc = 1.0 if page_match else 0.0
                     # Strict Attributed Accuracy (SAA): Both answer (ANLS >= 0.5) AND citation match

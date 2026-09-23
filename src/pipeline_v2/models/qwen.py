@@ -132,7 +132,11 @@ class QwenVLModel:
             resp = self._client.get(self._models_url, headers=self.headers, timeout=5.0)
             if resp.is_success:
                 data = resp.json()
-                models = [m.get("id") for m in data.get("data", [])] if isinstance(data, dict) else []
+                models = (
+                    [m.get("id") for m in data.get("data", [])]
+                    if isinstance(data, dict)
+                    else []
+                )
                 return True, f"Connected to {self.config.api_url} (models: {models})"
             # Fallback check on health or chat completions URL
             health_url = f"{self.config.api_url.rstrip('/')}/health"
